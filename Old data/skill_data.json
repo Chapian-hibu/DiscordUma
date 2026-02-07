@@ -1,0 +1,119 @@
+{
+    "shop": {
+        "On Your Left!": {
+            "cost": 360.0,
+            "emoji": "<:skill9:1428323728743464982>"
+        },
+        "Slick Surge": {
+            "cost": 180.0,
+            "emoji": "<:skill9:1428323728743464982>"
+        },
+        "Nakayama Racecourse \u25ce": {
+            "cost": 200.0,
+            "emoji": "<:skill2:1428323011240394843>"
+        },
+        "Nakayama Racecourse \u25cb": {
+            "cost": 90.0,
+            "emoji": "<:skill2:1428323011240394843>"
+        },
+        "Pace Strategy": {
+            "cost": 170.0,
+            "emoji": "<:skill7:1428323525286166568>"
+        }
+    },
+    "user_points": {
+        "702862162925977671": {
+            "points": 2031.0,
+            "skills": [
+                "Mental Strength",
+                "On Your Left!"
+            ]
+        },
+        "1032875569202872350": {
+            "points": 772.0,
+            "skills": [
+                "Unwavering Heart",
+                "Rising Passion",
+                "Flustered Pace Chasers",
+                "Nakayama Racecourse \u25ce"
+            ]
+        },
+        "468650456978161685": {
+            "points": 1275.0,
+            "skills": [
+                "On Your Left!"
+            ]
+        },
+        "899293605750013982": {
+            "points": 120.0,
+            "skills": []
+        },
+        "821803116864733215": {
+            "points": 1345.0,
+            "skills": []
+        },
+        "1034859778075271309": {
+            "points": 787.0,
+            "skills": []
+        },
+        "663193234717016084": {
+            "points": 1087.0,
+            "skills": [
+                "Pace Strategy",
+                "Nakayama Racecourse \u25ce"
+            ]
+        },
+        "911472978703818782": {
+            "points": 2767.0,
+            "skills": []
+        },
+        "563009132899336205": {
+            "points": 244.0,
+            "skills": []
+        },
+        "677592334246084619": {
+            "points": 244.0,
+            "skills": []
+        },
+        "906142418506772510": {
+            "points": 1557.0,
+            "skills": []
+        },
+        "1165452475365593098": {
+            "points": 247.0,
+            "skills": []
+        },
+        "970503977227649065": {
+            "points": 1310.0,
+            "skills": []
+        },
+        "340044324257398784": {
+            "points": 1213.0,
+            "skills": []
+        },
+        "1009761647897890838": {
+            "points": 1213.0,
+            "skills": []
+        },
+        "1132965463719153744": {
+            "points": 16.0,
+            "skills": [
+                "Mighty Leap",
+                "Mental Strength",
+                "On Your Left!"
+            ]
+        },
+        "1233830188047925439": {
+            "points": 36.0,
+            "skills": [
+                "Pace Strategy",
+                "Nakayama Racecourse \u25ce"
+            ]
+        },
+        "1423635971223588978": {
+            "points": 0.0,
+            "skills": []
+        }
+    },
+    "base_stamina": 0.0
+}
