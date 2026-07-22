@@ -12,6 +12,7 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 intents = discord.Intents.default()
 intents.messages = True
 intents.members = True
+intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
 
@@ -27,6 +28,7 @@ async def balance(ctx):
     """Check your balance"""
     user_balance = economy.get_balance(ctx.author.id)
     await ctx.send(f'{ctx.author.mention}, you have **${user_balance}** coins!')
+
 
 @bot.command(name='daily')
 async def daily(ctx):
