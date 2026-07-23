@@ -4,6 +4,10 @@ import logging
 from dotenv import load_dotenv
 import os
 from economy import EconomySys
+import asyncio
+from word_system import WordStats
+
+wordstats = WordStats()
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")
@@ -80,6 +84,59 @@ async def set_balance(ctx, member: discord.Member, amount: int):
     """Set a user's balance (Admin only)"""
     economy.set_balance(member.id, amount)
     await ctx.send(f'Set {member.mention}\'s balance to **${amount}**')
+
+@bot.event
+async def on_message(message):
+    # ignore the bot's mess
+    if message.author.bot:
+        return
+
+    #Ignore command
+    ctx = await bot.get_context(message)
+    if ctx.command is None:
+        wordstats.record_message(
+            channel_id=message.channel.id,
+            user_id=message.author.id,
+            user_name=message.author.display_name,
+            content=message.content,
+        )
+
+    await bot.process_commands(message)
+
+@bot.command(name='countstart')
+async def count_start(ctx,minutes: float = None):
+    """Start counting letters, you can add time behind !countstart 'time'"""
+    if wordstats.is_active(ctx.channel.id):
+        await ctx.send("Already active, '!countstop' to end it")
+        return
+
+    wordstats.start(ctx.channel.id)
+
+    if minutes:
+        await ctx.send(f"Started counting! Auto stop in **{minutes} minute(s)**")
+
+        async def auto_stop():
+            try:
+                await asyncio.sleep(minutes * 60)
+                if wordstats.is_active(ctx.channel.id):
+                    wordstats.stop(ctx.channel.id)
+                    report = wordstats.build_report(ctx.channel.id)
+                    await ctx.send(f"Time's up , stopped counting. \n \n{report}")
+            except asyncio.CancelledError:
+                pass #manually stop
+            session = wordstats._get_session(ctx.channel.id)
+            session.timer_task = asyncio.create_task(auto_stop())
+    else:
+        ctx.send("Counting started")
+
+@bot.command(name='countstop')
+async def countstop(ctx):
+    if not wordstats.is_active(ctx.channel.id):
+        await ctx.send("No counting currently active")
+        return
+    wordstats.stop(ctx.channel.id)
+    report = wordstats.build_report(ctx.channel.id)
+    await ctx.send(report)
 
 # Run the bot
 bot.run(token, log_handler=handler,log_level=logging.DEBUG)

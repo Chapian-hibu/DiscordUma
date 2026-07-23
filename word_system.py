@@ -1,4 +1,4 @@
-#import asyncio
+import asyncio
 import time
 
 class CountSession:
@@ -79,7 +79,7 @@ class WordStats:
             reverse=True
         )
 
-        lines = ["**📊 Count Session Results**\n"]
+        lines = ["** Results**\n"]
         for _, data in ranked:
             lines.append(f"- **{data['name']}**: {data['letters']} letters, {data['words']} words")
 
