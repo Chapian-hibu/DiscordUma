@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import logging
 from dotenv import load_dotenv
 import os
@@ -27,12 +28,42 @@ economy = EconomySys()
 async def on_ready():
     print(f'{bot.user} has connected to Discord!')
 
+    try:
+        guild = discord.Object(id=1221350780842414120)
+        synced = await bot.tree.sync(guild = guild)
+        print (f'Synced {len(synced)} commands to guild {guild}')
+
+    except Exception as e:
+        print(f'Error syncing commands: {e}')
+
+
+
+@bot.listen()
+async def on_message(message):
+    if message.author == bot.user:
+        return
+    if message.content.startswith('hi'):
+        await message.channel.send(f'Hello there {message.author}!')
+
+
+
+@bot.listen()
+async def on_reaction_add(reaction):
+    await reaction.message.channel.send('You reacted, FENG SHUI ULTIMATE')
+
+GUILD_ID = discord.Object(id=1221350780842414120)
+
+@bot.tree.command(name='hello',description='Say hi specifically to the bot',guild = GUILD_ID)
+async def hello(interaction: discord.Interaction):
+    await interaction.response.send_message('Hi there!')
+
 @bot.command(name='balance', aliases=['bal'])
 async def balance(ctx):
     """Check your balance"""
     user_balance = economy.get_balance(ctx.author.id)
-    await ctx.send(f'{ctx.author.mention}, you have **${user_balance}** coins!')
-
+    msg = await ctx.send(f'{ctx.author.mention}, you have **${user_balance}** coins!')
+    await asyncio.sleep(5)
+    await msg.delete()
 
 @bot.command(name='daily')
 async def daily(ctx):
@@ -137,6 +168,7 @@ async def countstop(ctx):
     wordstats.stop(ctx.channel.id)
     report = wordstats.build_report(ctx.channel.id)
     await ctx.send(report)
+
 
 # Run the bot
 bot.run(token, log_handler=handler,log_level=logging.DEBUG)
