@@ -43,19 +43,32 @@ async def on_message(message):
     if message.author == bot.user:
         return
     if message.content.startswith('hi'):
-        await message.channel.send(f'Hello there {message.author}!')
-
-
+        await message.channel.send(f'Hello there {message.author.mention}!')
 
 @bot.listen()
-async def on_reaction_add(reaction):
-    await reaction.message.channel.send('You reacted, FENG SHUI ULTIMATE')
+async def on_reaction_add(reaction, user):
+    if user == bot.user:
+        return
+    await reaction.message.channel.send(f'{user.mention} reacted, FENG SHUI ULTIMATE')
 
 GUILD_ID = discord.Object(id=1221350780842414120)
 
 @bot.tree.command(name='hello',description='Say hi specifically to the bot',guild = GUILD_ID)
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message('Hi there!')
+
+#UmaBot
+#Check stats(WIP)
+@bot.tree.command(name='stats',description='Check your stats!',guild = GUILD_ID)
+async def stats(interaction: discord.Interaction):
+    embed = discord.Embed(title="Uma A's Statistic", description="This is your basic stats", color=0x52ff54)
+    embed.set_author(name="Your Character Stat's")
+    embed.add_field(name=f'<:speed:1530108148663451768> | <:stamina:1530108146519904256> | <:power:1530108150794027009> | <:guts:1530108152677138503> | <:wisdom:1530108154526826496>', value="1200|1200| 1200|1200| 1200", inline=False)
+    embed.add_field(name="Your Current Skill Points", value="6767", inline=True)
+    embed.add_field(name="Your Current Skill Points", value="6767", inline=True)
+    embed.set_footer(text="This is a footer")
+    await interaction.response.send_message(embed=embed)
+
 
 @bot.command(name='balance', aliases=['bal'])
 async def balance(ctx):
