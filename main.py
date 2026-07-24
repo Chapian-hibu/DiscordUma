@@ -31,7 +31,7 @@ async def on_ready():
     try:
         guild = discord.Object(id=1221350780842414120)
         synced = await bot.tree.sync(guild = guild)
-        print (f'Synced {len(synced)} commands to guild {guild}')
+        print (f'Synced {len(synced)} commands to guild!')
 
     except Exception as e:
         print(f'Error syncing commands: {e}')
@@ -63,10 +63,11 @@ async def hello(interaction: discord.Interaction):
 async def stats(interaction: discord.Interaction):
     embed = discord.Embed(title="Uma A's Statistic", description="This is your basic stats", color=0x52ff54)
     embed.set_author(name="Your Character Stat's")
+    embed.set_thumbnail(url="https://res.cloudinary.com/haricebox/image/upload/v1784897807/i_carat.png")
     embed.add_field(name=f'<:speed:1530108148663451768> | <:stamina:1530108146519904256> | <:power:1530108150794027009> | <:guts:1530108152677138503> | <:wisdom:1530108154526826496>', value="1200|1200| 1200|1200| 1200", inline=False)
-    embed.add_field(name="Your Current Skill Points", value="6767", inline=True)
-    embed.add_field(name="Your Current Skill Points", value="6767", inline=True)
-    embed.set_footer(text="This is a footer")
+    embed.add_field(name="Skill Points", value="6767", inline=True)
+    embed.add_field(name="Your Carats", value="4", inline=True)
+    embed.set_footer(text="Tazuna quote here")
     await interaction.response.send_message(embed=embed)
 
 
@@ -74,7 +75,7 @@ async def stats(interaction: discord.Interaction):
 async def balance(ctx):
     """Check your balance"""
     user_balance = economy.get_balance(ctx.author.id)
-    msg = await ctx.send(f'{ctx.author.mention}, you have **${user_balance}** coins!')
+    msg = await ctx.send(f'{ctx.author.mention}, you have {user_balance}<:I_Carat:1530209008814657689>')
     await asyncio.sleep(5)
     await msg.delete()
 
@@ -83,7 +84,7 @@ async def daily(ctx):
     """Claim daily coins"""
     amount = 100
     new_balance = economy.add_money(ctx.author.id, amount)
-    await ctx.send(f'{ctx.author.mention} claimed **${amount}** daily coins! New balance: **${new_balance}**')
+    await ctx.send(f'{ctx.author.mention} claimed {amount}<:I_Carat:1530209008814657689> daily coins! New balance: {new_balance}<:I_Carat:1530209008814657689>')
 
 @bot.command(name='pay')
 async def pay(ctx, member: discord.Member, amount: int):
@@ -99,7 +100,7 @@ async def pay(ctx, member: discord.Member, amount: int):
     result = economy.transfer_money(ctx.author.id, member.id, amount)
 
     if result["success"]:
-        await ctx.send(f'{ctx.author.mention} paid {member.mention} **${amount}**!')
+        await ctx.send(f'{ctx.author.mention} paid {member.mention} {amount}<:I_Carat:1530209008814657689>!')
     else:
         await ctx.send(f'{ctx.author.mention}, {result["message"]}')
 
@@ -117,7 +118,7 @@ async def leaderboard(ctx):
     description = ""
     for index, (user_id, balances) in enumerate(top_users, 1):
         user = await bot.fetch_user(int(user_id))
-        description += f"**{index}.** {user.name} - ${balances}\n"
+        description += f"**{index}.** {user.name} - {balances} <:I_Carat:1530209008814657689>\n"
 
     embed.description = description
     await ctx.send(embed=embed)
@@ -127,7 +128,7 @@ async def leaderboard(ctx):
 async def set_balance(ctx, member: discord.Member, amount: int):
     """Set a user's balance (Admin only)"""
     economy.set_balance(member.id, amount)
-    await ctx.send(f'Set {member.mention}\'s balance to **${amount}**')
+    await ctx.send(f'Set {member.mention}\'s balance to {amount}<:I_Carat:1530209008814657689>')
 
 @bot.event
 async def on_message(message):
