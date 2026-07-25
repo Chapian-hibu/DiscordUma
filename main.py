@@ -4,7 +4,7 @@ from discord import app_commands
 import logging
 from dotenv import load_dotenv
 import os
-from economy import EconomySys
+from Resource import EconomySys
 import asyncio
 from word_system import WordStats
 
