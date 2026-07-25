@@ -25,19 +25,13 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 #Initialize the economy system
 economy = EconomySys()
 
+GUILD_ID = discord.Object(id=1221350780842414120)
+#1221350780842414120 my server
+#1413923727800008868 mize server
+
 @bot.event
 async def on_ready():
-    print(f'{bot.user} has connected to Discord!')
-
-    try:
-        guild = discord.Object(id=1221350780842414120)
-        synced = await bot.tree.sync(guild = guild)
-        print (f'Synced {len(synced)} commands to guild!')
-
-    except Exception as e:
-        print(f'Error syncing commands: {e}')
-
-
+    print(f'{bot.user} Logged in!')
 
 @bot.listen()
 async def on_message(message):
@@ -52,15 +46,15 @@ async def on_reaction_add(reaction, user):
         return
     await reaction.message.channel.send(f'{user.mention} reacted, FENG SHUI ULTIMATE')
 
-GUILD_ID = discord.Object(id=1221350780842414120)
 
-@bot.tree.command(name='hello',description='Say hi specifically to the bot',guild = GUILD_ID)
+
+@bot.tree.command(name='hello',description='Say hi specifically to the bot')
 async def hello(interaction: discord.Interaction):
     await interaction.response.send_message('Hi there!')
 
 #UmaBot
 #Check stats(WIP)
-@bot.tree.command(name='stats',description='Check your stats!',guild = GUILD_ID)
+@bot.tree.command(name='stats',description='Check your stats!')
 async def stats(interaction: discord.Interaction):
     embed = discord.Embed(title="Uma A's Statistic", description="This is your basic stats", color=0x52ff54)
     embed.set_author(name="Your Character Stat's")
@@ -82,7 +76,7 @@ async def balance(ctx):
 
 DAILY_COOL_DOWN_HOURS = 24
 
-@bot.tree.command(name='daily',description='Collect your daily rewards',guild = GUILD_ID)
+@bot.tree.command(name='daily',description='Collect your daily rewards')
 async def daily(interaction: discord.Interaction):
     """Claim daily coins"""
     user_id = interaction.user.id
@@ -210,6 +204,11 @@ async def countstop(ctx):
     report = wordstats.build_report(ctx.channel.id)
     await ctx.send(report)
 
+@bot.command(name='sync')
+@commands.is_owner()
+async def sync_commands(ctx):
+    synced = await bot.tree.sync()
+    await ctx.send(f"Synced {len(synced)} commands globally.")
 
 # Run the bot
 bot.run(token, log_handler=handler,log_level=logging.DEBUG)
