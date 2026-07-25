@@ -9,14 +9,12 @@ class EconomySys:
         self.balances = self.load_data()
 
     def load_data(self):
-        """Load balance data from JSON file"""
         if os.path.exists(self.data_file):
             with open(self.data_file, 'r') as f:
                 return json.load(f)
         return {}
 
     def save_data(self):
-        """Save data to JSON file"""
         with open(self.data_file, 'w') as f:
             json.dump(self.balances, f, indent=4)
 
@@ -34,9 +32,7 @@ class EconomySys:
         self.ensure_user(user_id)
         return self.balances[user_id]["balance"]
 
-
     def add_money(self, user_id, amount):
-        """Add money """
         user_id = str(user_id)
         self.ensure_user(user_id)
         self.balances[user_id]["balance"] += amount
@@ -44,7 +40,6 @@ class EconomySys:
         return self.balances[user_id]["balance"]
 
     def remove_money(self, user_id, amount):
-        """Remove money """
         user_id = str(user_id)
         self.ensure_user(user_id)
         current_balance = self.balances[user_id]["balance"]
@@ -57,7 +52,7 @@ class EconomySys:
         return {"success": True, "new_balance": self.balances[user_id]["balance"]}
 
     def transfer_money(self, from_user_id, to_user_id, amount):
-        """Transfer money between users"""
+        #Moving money
         removal = self.remove_money(from_user_id, amount)
 
         if not removal["success"]:
@@ -74,11 +69,21 @@ class EconomySys:
         return amount
 
     def leaderboard(self, limit=10):
-        """Get top users' balance"""
+        #Leader board of Economy
         sorted_users = sorted(self.balances.items(),
                               key=lambda x: x[1]["balance"] if isinstance(x[1], dict ) else x[1],
                               reverse=True)
         return sorted_users[:limit]
 
-    def 
+    def get_last_cd(self, user_id):
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        return self.balances[user_id]["last_daily"]
+
+    def set_last_cd(self,user_id,timestamp_iso):
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        self.balances[user_id]["last_daily"] = timestamp_iso
+        self.save_data()
+
 
