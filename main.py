@@ -7,6 +7,7 @@ import os
 from Resource import EconomySys
 import asyncio
 from word_system import WordStats
+from datetime import datetime, timedelta, timezone
 
 wordstats = WordStats()
 
@@ -79,12 +80,38 @@ async def balance(ctx):
     await asyncio.sleep(5)
     await msg.delete()
 
-@bot.command(name='daily')
-async def daily(ctx):
+DAILY_COOL_DOWN_HOURS = 24
+
+@bot.tree.command(name='daily',description='Collect your daily rewards',guild = GUILD_ID)
+async def daily(interaction: discord.Interaction):
     """Claim daily coins"""
-    amount = 100
-    new_balance = economy.add_money(ctx.author.id, amount)
-    await ctx.send(f'{ctx.author.mention} claimed {amount}<:I_Carat:1530209008814657689> daily coins! New balance: {new_balance}<:I_Carat:1530209008814657689>')
+    user_id = interaction.user.id
+    now = datetime.now(timezone.utc)
+
+    last_daily_iso = economy.get_last_cd(user_id)
+
+    if last_daily_iso is not None:
+        last_claim = datetime.fromisoformat(last_daily_iso)
+        next_available = last_claim + timedelta(hours=DAILY_COOL_DOWN_HOURS)
+
+        if now < next_available:
+            remaining = next_available - now
+            hours, remainder = divmod(int(remaining.total_seconds()), 3600)
+            minutes, seconds = divmod(remainder, 60)
+
+            await interaction.response.send_message(
+                f'{interaction.user.mention} Nhận thưởng hôm nay rồi mà?'
+                f'Hỏi lại sau **{hours} giờ {minutes} phút và {seconds} giây ** nhé!'
+                )
+            return
+
+    amount = 30 #45
+    new_balance = economy.add_money(user_id, amount)
+    economy.set_last_cd(user_id,now.isoformat())
+
+    await interaction.response.send_message(f'{interaction.user.mention} đã nhận thưởng hàng ngày {amount}<:I_Carat:1530209008814657689>'
+                   f'Giờ bạn đang có {new_balance}<:I_Carat:1530209008814657689>'
+                   )
 
 @bot.command(name='pay')
 async def pay(ctx, member: discord.Member, amount: int):
@@ -127,7 +154,7 @@ async def leaderboard(ctx):
 @commands.has_permissions(administrator=True)
 async def set_balance(ctx, member: discord.Member, amount: int):
     """Set a user's balance (Admin only)"""
-    economy.set_balance(member.id, amount)
+    economy.set_money(member.id, amount)
     await ctx.send(f'Set {member.mention}\'s balance to {amount}<:I_Carat:1530209008814657689>')
 
 @bot.event

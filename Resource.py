@@ -21,16 +21,59 @@ class EconomySys:
     def ensure_user(self, user_id):
         user_id = str(user_id)
         if user_id not in self.balances:
-            self.balances[user_id] = {"balance": 0, "last_daily": None}
-        elif not isinstance(self.balances[user_id], dict):
+            self.balances[user_id] = self._default_record()
+            return
+
+        if not isinstance(self.balances[user_id], dict):
             old_balance = self.balances[user_id]
-            self.balances[user_id] = {"balance": old_balance, "last_daily": None}
+            self.balances[user_id] = self._default_record()
+            self.balances[user_id]["balance"] = old_balance
+            return
+        defaults = self._default_record()
+        for key, default_value in defaults.items():
+            if key not in self.balances[user_id]:
+                self.balances[user_id][key] = default_value
+
+    @staticmethod
+    def _default_record():
+        """Full default shape for a new user record"""
+        return {
+            "balance": 0,
+            "last_daily": None,
+            "Spd": 0,
+            "Stm": 0,
+            "Pow": 0,
+            "Gut": 0,
+            "Wis": 0,
+            "s_point":0,
+            "rank": "Unrated",
+            "collectibles" : {}
+        }
+    def get_field(self,user_id, field, default =None):
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        return self.balances[user_id].get(field,default)
+
+    def set_field(self,user_id, field, value):
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        self.balances[user_id][field] = value
+        self.save_data()
+
+    def increment_field(self, user_id, field, amount = 0):
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        self.balances[user_id][field] = self.balances[user_id](field,0) + amount
+        self.save_data()
+        return self.balances[user_id]["balance"]
 
     def get_balance(self, user_id):
         """Get user's  balance"""
         user_id = str(user_id)
         self.ensure_user(user_id)
         return self.balances[user_id]["balance"]
+
+
 
     def add_money(self, user_id, amount):
         user_id = str(user_id)
@@ -61,7 +104,8 @@ class EconomySys:
         self.add_money(to_user_id, amount)
         return {"success": True, "message": "Transfer completed"}
 
-    def set_balance(self, user_id, amount):
+
+    def set_money(self, user_id, amount):
         """Set user's balance (admin function)"""
         user_id = str(user_id)
         self.balances[user_id]["balance"] = amount
@@ -86,4 +130,39 @@ class EconomySys:
         self.balances[user_id]["last_daily"] = timestamp_iso
         self.save_data()
 
+    """-----------------------COLLECTABLES-----------------------"""
+    def add_collectible(self, user_id, item_id,quanity =1):
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        current = self.balances[user_id]["collectibles"]. get(item_id,0)
+        self.balances[user_id]["collectibles"][item_id] = current+quanity
+        self.save_data()
+        return self.balances[user_id]["collectibles"][item_id]
 
+    def remove_collectible(self, user_id, item_id,quantity = 1):
+        """Remove item, return False if not enough owned"""
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        current = self.balances[user_id]["collectibles"]. get(item_id,0)
+
+        if current < quantity:
+            return{"success": False, "message": "not enough owned cuhh"}
+
+        new_amount = current - quantity
+        if new_amount == 0:
+            del self.balances[user_id]["collectibles"][item_id]
+        else:
+            self.balances[user_id]["collectibles"][item_id] = new_amount
+
+        self.save_data()
+        return {"success": True}
+
+    def get_collectible(self, item_id):
+        user_id = str(item_id)
+        self.ensure_user(user_id)
+        return self.balances[user_id]["collectibles"]
+
+    def has_collectible(self, user_id, item_id, quantity = 1):
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        return self.balances[user_id]["collectibles"].get(item_id,0) >= quantity
