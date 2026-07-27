@@ -1,6 +1,7 @@
 # Resource.py
 import json
 import os
+import random
 
 
 class EconomySys:
@@ -49,10 +50,6 @@ class EconomySys:
             "rank": "Unrated",
             "collectibles" : {}
         }
-    def get_field(self,user_id, field, default =None):
-        user_id = str(user_id)
-        self.ensure_user(user_id)
-        return self.balances[user_id].get(field,default)
 
     def set_field(self,user_id, field, value):
         user_id = str(user_id)
@@ -63,17 +60,15 @@ class EconomySys:
     def increment_field(self, user_id, field, amount = 0):
         user_id = str(user_id)
         self.ensure_user(user_id)
-        self.balances[user_id][field] = self.balances[user_id](field,0) + amount
+        self.balances[user_id][field] = self.balances[user_id].get(field,0) + amount
         self.save_data()
-        return self.balances[user_id]["balance"]
+        return self.balances[user_id][field]
 
     def get_balance(self, user_id):
         """Get user's  balance"""
         user_id = str(user_id)
         self.ensure_user(user_id)
         return self.balances[user_id]["balance"]
-
-
 
     def add_money(self, user_id, amount):
         user_id = str(user_id)
@@ -119,6 +114,7 @@ class EconomySys:
                               reverse=True)
         return sorted_users[:limit]
 
+    """-----------------------TIME INTERVAL-----------------------"""
     def get_last_cd(self, user_id):
         user_id = str(user_id)
         self.ensure_user(user_id)
@@ -166,3 +162,35 @@ class EconomySys:
         user_id = str(user_id)
         self.ensure_user(user_id)
         return self.balances[user_id]["collectibles"].get(item_id,0) >= quantity
+
+    """-----------------------RNG STUFF-----------------------"""
+    @staticmethod
+    def default_train_type():
+        weighted_lobby = {'Spd':[0.8,0,0.4,0,0,2],
+                          'Stm':[0,0.7,0,0.3,0,2],
+                          'Pow':[0,0.4,0.6,0,0,2],
+                          'Gut':[0.3,0,0.3,0.6,0,2],
+                          'Wis':[0,0,0.2,0,0.6,2]}
+        t_type = random.choice(list(weighted_lobby.keys()))
+        t_value = weighted_lobby[t_type]
+        return t_type, t_value
+
+    @staticmethod
+    def default_train_value():
+        return random.randint(1,19)
+
+    @staticmethod
+    def default_fail_value(value):
+        value_v = value
+        new_value = round(value_v/2 * 10)
+        return new_value
+
+    def get_field(self, user_id,field):
+        """Get user's  balance"""
+        user_id = str(user_id)
+        self.ensure_user(user_id)
+        return self.balances[user_id].get(field,-1)
+
+
+
+
