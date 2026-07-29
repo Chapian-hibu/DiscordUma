@@ -2,7 +2,7 @@
     "741513132824068197": {
         "balance": 160,
         "last_daily": "2026-07-27T07:10:50.132555+00:00",
-        "Spd": 14,
+        "Spd": 0,
         "Stm": 0,
         "Pow": 7,
         "Gut": 0,
@@ -28,6 +28,18 @@
         "balance": 30,
         "last_daily": "2026-07-27T13:03:49.837768+00:00",
         "Spd": 0,
+        "Stm": 0,
+        "Pow": 0,
+        "Gut": 0,
+        "Wis": 0,
+        "s_point": 0,
+        "rank": "Unrated",
+        "collectibles": {}
+    },
+    "702862162925977671": {
+        "balance": 0,
+        "last_daily": null,
+        "Spd": 14,
         "Stm": 0,
         "Pow": 0,
         "Gut": 0,

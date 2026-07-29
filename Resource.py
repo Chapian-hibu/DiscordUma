@@ -64,39 +64,35 @@ class EconomySys:
         self.save_data()
         return self.balances[user_id][field]
 
-    def get_balance(self, user_id):
-        """Get user's  balance"""
+    def get_field(self, user_id, field):
         user_id = str(user_id)
         self.ensure_user(user_id)
-        return self.balances[user_id]["balance"]
+        return self.balances[user_id].get(field,-1)
 
-    def add_money(self, user_id, amount):
-        user_id = str(user_id)
-        self.ensure_user(user_id)
-        self.balances[user_id]["balance"] += amount
-        self.save_data()
-        return self.balances[user_id]["balance"]
 
-    def remove_money(self, user_id, amount):
+    def decrement_field(self, user_id, field,amount):
+        #remove amount from a field (mostly cash)
+        field_type = field
         user_id = str(user_id)
         self.ensure_user(user_id)
-        current_balance = self.balances[user_id]["balance"]
+        current_balance = self.balances[user_id][field_type]
 
         if current_balance < amount:
-            return {"success": False, "message": "Insufficient funds"}
+            return {"success": False, "message": "Insufficient amount"}
 
-        self.balances[user_id]["balance"] = current_balance - amount
+        self.balances[user_id][field_type] = current_balance - amount
         self.save_data()
-        return {"success": True, "new_balance": self.balances[user_id]["balance"]}
+        return {"success": True, "new_balance": self.balances[user_id][field_type]}
 
-    def transfer_money(self, from_user_id, to_user_id, amount):
+    def index_field(self, from_user_id, to_user_id,field, amount):
+        field_type = field
         #Moving money
-        removal = self.remove_money(from_user_id, amount)
+        removal = self.decrement_field(from_user_id, field_type, amount)
 
         if not removal["success"]:
             return removal
 
-        self.add_money(to_user_id, amount)
+        self.increment_field(to_user_id,field_type,amount)
         return {"success": True, "message": "Transfer completed"}
 
 
@@ -127,11 +123,11 @@ class EconomySys:
         self.save_data()
 
     """-----------------------COLLECTABLES-----------------------"""
-    def add_collectible(self, user_id, item_id,quanity =1):
+    def add_collectible(self, user_id, item_id,quantity =1):
         user_id = str(user_id)
         self.ensure_user(user_id)
         current = self.balances[user_id]["collectibles"]. get(item_id,0)
-        self.balances[user_id]["collectibles"][item_id] = current+quanity
+        self.balances[user_id]["collectibles"][item_id] = current+quantity
         self.save_data()
         return self.balances[user_id]["collectibles"][item_id]
 
@@ -142,7 +138,7 @@ class EconomySys:
         current = self.balances[user_id]["collectibles"]. get(item_id,0)
 
         if current < quantity:
-            return{"success": False, "message": "not enough owned cuhh"}
+            return{"success": False, "message": "Chưa đủ tài sản"}
 
         new_amount = current - quantity
         if new_amount == 0:
@@ -184,12 +180,6 @@ class EconomySys:
         value_v = value
         new_value = round(value_v/2 * 10)
         return new_value
-
-    def get_field(self, user_id,field):
-        """Get user's  balance"""
-        user_id = str(user_id)
-        self.ensure_user(user_id)
-        return self.balances[user_id].get(field,-1)
 
 
 

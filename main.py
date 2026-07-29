@@ -9,6 +9,7 @@ import os
 from Resource import EconomySys
 import asyncio
 from word_system import WordStats
+from word_system import ConfirmView
 from datetime import datetime, timedelta, timezone
 import random
 
@@ -75,15 +76,6 @@ async def stats(interaction: discord.Interaction):
     embed.set_footer(text="Tazuna quote here")
     await interaction.response.send_message(embed=embed)
 
-
-@bot.command(name='balance', aliases=['bal'])
-async def balance(ctx):
-    """Check your balance"""
-    user_balance = economy.get_balance(ctx.author.id)
-    msg = await ctx.send(f'{ctx.author.mention}, you have {user_balance}<:I_Carat:1530209008814657689>')
-    await asyncio.sleep(5)
-    await msg.delete()
-
 DAILY_COOL_DOWN_HOURS = 24
 
 @bot.tree.command(name='daily',description='Collect your daily rewards')
@@ -110,15 +102,15 @@ async def daily(interaction: discord.Interaction):
             return
 
     amount = 30 #45
-    new_balance = economy.add_money(user_id, amount)
+    new_balance = economy.increment_field(user_id, "balance",amount)
     economy.set_last_cd(user_id,now.isoformat())
 
     await interaction.response.send_message(f'{interaction.user.mention} đã nhận thưởng hàng ngày {amount}<:I_Carat:1530209008814657689>'
-                   f'Giờ bạn đang có {new_balance}<:I_Carat:1530209008814657689>'
+                   f'Giờ bạn có {new_balance}<:I_Carat:1530209008814657689>'
                    )
 
-@bot.command(name='pay')
-async def pay(ctx, member: discord.Member, amount: int):
+@bot.command(name='transfer')
+async def transfer(ctx, member: discord.Member, field ,amount: int):
     """Transfer money to another user"""
     if amount <= 0:
         await ctx.send("Amount must be positive!")
@@ -128,10 +120,11 @@ async def pay(ctx, member: discord.Member, amount: int):
         await ctx.send("You can't pay yourself!")
         return
 
-    result = economy.transfer_money(ctx.author.id, member.id, amount)
+    result = economy.index_field(ctx.author.id, member.id,field ,amount)
+    #transfer_money(ctx.author.id, member.id, amount)
 
     if result["success"]:
-        await ctx.send(f'{ctx.author.mention} paid {member.mention} {amount}<:I_Carat:1530209008814657689>!')
+        await ctx.send(f'{ctx.author.mention}{field} paid {member.mention} {amount}')
     else:
         await ctx.send(f'{ctx.author.mention}, {result["message"]}')
 
@@ -156,11 +149,11 @@ async def leaderboard(ctx):
 
 @bot.command(name='set balance')
 @commands.has_permissions(administrator=True)
-async def set_balance(ctx, member: discord.Member, amount: int):
+async def set_balance(ctx, member: discord.Member,field: str, amount: int):
     """Set a user's balance (Admin only)"""
-    economy.set_money(member.id, amount)
-    await ctx.send(f'Set {member.mention}\'s balance to {amount}<:I_Carat:1530209008814657689>')
-
+    economy.set_field(member.id, field, amount)
+    await ctx.send(f'Set {member.mention}\'s {field} to {amount}')
+#----------------------------WORDINGS----------------------------------#
 @bot.event
 async def on_message(message):
     # ignore the bot's mess
@@ -179,11 +172,12 @@ async def on_message(message):
 
     await bot.process_commands(message)
 
-@bot.command(name='countstart')
-async def count_start(ctx,minutes: float = None):
-    """Start counting letters, you can add time behind !countstart 'time'"""
+
+@bot.hybrid_command(name='countstart', description="Start counting words in this channel/thread")
+@app_commands.describe(minutes="Optional: auto-stop after this many minutes")
+async def count_start(ctx: commands.Context, minutes: float = None):
     if wordstats.is_active(ctx.channel.id):
-        await ctx.send("Already active, '!countstop' to end it")
+        await ctx.send("Already active, use `!countstop` (or `/countstop`) to end it")
         return
 
     wordstats.start(ctx.channel.id)
@@ -197,30 +191,93 @@ async def count_start(ctx,minutes: float = None):
                 if wordstats.is_active(ctx.channel.id):
                     wordstats.stop(ctx.channel.id)
                     report = wordstats.build_report(ctx.channel.id)
-                    await ctx.send(f"Time's up , stopped counting. \n \n{report}")
+                    await ctx.send(f"Time's up, stopped counting.\n\n{report}")
             except asyncio.CancelledError:
-                pass #manually stop
-            session = wordstats._get_session(ctx.channel.id)
-            session.timer_task = asyncio.create_task(auto_stop())
-    else:
-        ctx.send("Counting started")
+                pass
 
-@bot.command(name='countstop')
-async def countstop(ctx):
+        session = wordstats._get_session(ctx.channel.id)
+        session.timer_task = asyncio.create_task(auto_stop())
+    else:
+        await ctx.send("Counting started")
+
+@bot.hybrid_command(name='countstop', description="Stop counting and show the report")
+async def countstop(ctx: commands.Context):
     if not wordstats.is_active(ctx.channel.id):
         await ctx.send("No counting currently active")
         return
+
     wordstats.stop(ctx.channel.id)
     report = wordstats.build_report(ctx.channel.id)
     await ctx.send(report)
 
-@bot.command(name='sync')
-@commands.is_owner()
-async def sync_commands(ctx):
-    synced = await bot.tree.sync()
-    print(f"Started syncing {len(synced)} commands globally.")
-    for cmd in synced:
-        print(f"  - /{cmd.name}: {cmd.description}")
+BACKFILL_WARNING_THRESHOLD = 100
+@bot.hybrid_command(name='countbackfill',description ='Total count the channel messages')
+async def count_backfill(ctx: commands.Context):
+    if wordstats.is_active(ctx.channel.id):
+        await ctx.send("Already active, somewhere or here")
+        return
+
+    await ctx.defer() #Slashes need refill within 3s,backfill can take longer
+
+    #Peek the threshold
+
+    preview_count = 0
+    async for _ in ctx.channel.history(limit= BACKFILL_WARNING_THRESHOLD+1):
+        preview_count += 1
+
+    if preview_count > BACKFILL_WARNING_THRESHOLD:
+        view = ConfirmView(author_id=ctx.author.id)
+        warm_msg = await ctx.send(
+            f"This channel has more than {BACKFILL_WARNING_THRESHOLD}\n"
+            f"This may take a while, Proceed?",
+            view = view
+            )
+        await view.wait()
+        if view.value is None:
+            await warm_msg.edit(content="Timed out for confirmation, cancelling")
+            return
+        if view.value is False:
+            return
+
+    wordstats.start(ctx.channel.id)
+    session = wordstats._get_session(ctx.channel.id)
+
+    progress_msg = await ctx.send("Counting message history... 0 processed")
+    processed = 0
+
+    async for message in ctx.channel.history(limit= None, oldest_first = True):
+        if session.backfill_cancelled:
+            await progress_msg.edit(content=f"Backfill cancelled after {processed} messages")
+            wordstats.stop(ctx.channel.id)
+
+            if message.author.bot:
+                continue
+
+            wordstats.record_message(
+                ctx.channel.id,
+                message.author.id,
+                message.author.display_name,
+                message.content
+            )
+
+            processed += 1
+
+            if processed % 200 == 0:
+                await progress_msg.edit(content=f"Counting messages history ...{processed} processed")
+
+            wordstats.stop(ctx.channel.id)
+            report = wordstats.build_report(ctx.channel.id)
+            await ctx.send(f"Backfill count complete({processed} messages(s))\n\n{report}")
+
+@bot.hybrid_command(name='countcancel', description="Cancel an in-progress backfill count in this channel")
+async def count_cancel(ctx: commands.Context):
+    if not wordstats.is_active(ctx.channel.id):
+        await ctx.send("Nothing is currently running in this channel.")
+        return
+
+    session = wordstats._get_session(ctx.channel.id)
+    session.backfill_cancelled = True
+    await ctx.send("Stopping the backfill... it'll halt after the current message.")
 
 # -----------------------------TRAINING EVENT-------------------------------------#
 EVENT_EMOTE = "<:I_Carat:1530209008814657689>"
@@ -338,6 +395,15 @@ async def ev_train(interaction: discord.Interaction,duration:int = EVENT_DURATIO
         await asyncio.sleep(30)
 
         await embed_result.delete()
+#-----------------------------DEBUGGING----------------------------------#
+@bot.command(name='sync')
+@commands.is_owner()
+async def sync_commands(ctx):
+    synced = await bot.tree.sync()
+    print(f"Started syncing {len(synced)} commands globally.")
+    for cmd in synced:
+        print(f"  - /{cmd.name}: {cmd.description}")
+
 
 
 # Run the bot
