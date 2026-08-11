@@ -154,6 +154,7 @@ async def set_balance(ctx, member: discord.Member,field: str, amount: int):
     economy.set_field(member.id, field, amount)
     await ctx.send(f'Set {member.mention}\'s {field} to {amount}')
 #----------------------------WORDINGS----------------------------------#
+"""
 @bot.event
 async def on_message(message):
     # ignore the bot's mess
@@ -278,7 +279,7 @@ async def count_cancel(ctx: commands.Context):
     session = wordstats._get_session(ctx.channel.id)
     session.backfill_cancelled = True
     await ctx.send("Stopping the backfill... it'll halt after the current message.")
-
+"""
 # -----------------------------TRAINING EVENT-------------------------------------#
 EVENT_EMOTE = "<:I_Carat:1530209008814657689>"
 EVENT_DURATION = 10
@@ -395,6 +396,10 @@ async def ev_train(interaction: discord.Interaction,duration:int = EVENT_DURATIO
         await asyncio.sleep(30)
 
         await embed_result.delete()
+
+#-----------------------------RP LISTING----------------------------------#
+
+
 #-----------------------------DEBUGGING----------------------------------#
 @bot.command(name='sync')
 @commands.is_owner()
