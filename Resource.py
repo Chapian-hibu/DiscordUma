@@ -37,7 +37,7 @@ class EconomySys:
 
     @staticmethod
     def _default_record():
-        """Full default shape for a new user record"""
+        """Unedited old datafiles
         return {
             "balance": 0,
             "last_daily": None,
@@ -49,6 +49,18 @@ class EconomySys:
             "s_point":0,
             "rank": "Unrated",
             "collectibles" : {}
+        }
+        """
+        return {
+            "balance": 0,
+            "last_daily": None,
+            "Stats": [1,2,3,4,5,6],
+            "Flat bonus": [1,2,3,4,5,6],
+            "Mult bonus": [1,2,3,4,5,6],
+
+            "s_point": 0,
+            "rank": "Unrated",
+            "collectibles": {}
         }
 
     def set_field(self,user_id, field, value):
@@ -94,14 +106,6 @@ class EconomySys:
 
         self.increment_field(to_user_id,field_type,amount)
         return {"success": True, "message": "Transfer completed"}
-
-
-    def set_money(self, user_id, amount):
-        """Set user's balance (admin function)"""
-        user_id = str(user_id)
-        self.balances[user_id]["balance"] = amount
-        self.save_data()
-        return amount
 
     def leaderboard(self, limit=10):
         #Leader board of Economy
@@ -160,6 +164,7 @@ class EconomySys:
         return self.balances[user_id]["collectibles"].get(item_id,0) >= quantity
 
     """-----------------------RNG STUFF-----------------------"""
+    #------------------------TRAINING---------------------------#
     @staticmethod
     def default_train_type():
         weighted_lobby = {'Spd':[0.8,0,0.4,0,0,2],
@@ -180,6 +185,10 @@ class EconomySys:
         value_v = value
         new_value = round(value_v/2 * 10)
         return new_value
+
+    # ------------------------TRAINING---------------------------#
+
+
 
 
 

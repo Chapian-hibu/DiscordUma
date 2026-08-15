@@ -9,7 +9,7 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-DATA_PATH = os.path.join("data","name_tracker.json")
+DATA_PATH = os.path.join("../cogs/data", "name_tracker.json")
 
 
 #---------------------------Persistence Layer---------------------------#
@@ -41,11 +41,11 @@ class NameTrackerStore:
 
     def _save(self) -> None:
         with open(self.path, "w",encoding="utf-8") as f:
-            json.dump(self.data, f, indent=2, ensure_ascii=False)
+            json.dump(self._data, f, indent=2, ensure_ascii=False)
 
     def guild(self,guild_id : int) -> dict:
         key = str(guild_id)
-        if key not in self.data:
+        if key not in self._data:
             self._data[key] = _default_guild_data()
             self._save()
         return self._data[key]
@@ -143,17 +143,14 @@ def monitor_channel_check():
     return app_commands.check(predicate)
 #---------------------------Configurations---------------------------#
 class NameTracker(commands.Cog):
-    def __init__(self, bot: commands.Bot):
-        self.bot = bot
-
-    @commands.Cog.listener()
-    async def on_message(self,message:discord.Message):
-
-        if message.author.bot or message.guild is None:
-            return
-        monitor_id = store.get_monitor_channel(message.guild.id)
-        if monitor_id is not None and message.channel.id != monitor_id:
-            return #dont read outside chat
+    settings_group = app_commands.Group(
+        name="settings", description="Admin settings for the name tracker."
+    )
+    role_group = app_commands.Group(
+        name="role", description="Manage which roles can use /record and /remove."
+    )
+    settings_group.add_command(role_group)
+        #dont read outside chat
         #More passive commands (future)
 
 #---------------------------Configurations---------------------------#
@@ -317,11 +314,11 @@ class NameTracker(commands.Cog):
     @remove.error
     @checklist.error
     async def on_app_command_error(self, interaction: discord.Interaction, error: app_commands.AppCommandError):
-    if isinstance(error, app_commands.CheckFailure):
-        if not interaction.response.is_done():
-            await interaction.response.send_message(str(error) or "You can't use this here.", ephemeral=True)
-        return
-    raise error
+        if isinstance(error, app_commands.CheckFailure):
+            if not interaction.response.is_done():
+                await interaction.response.send_message(str(error) or "You can't use this here.", ephemeral=True)
+            return
+        raise error
 
 
     @settings_channel_prefix.error
@@ -329,13 +326,11 @@ class NameTracker(commands.Cog):
         if isinstance(error, commands.MissingPermissions):
             await ctx.send("⚠️ You need Administrator permission to use this.")
             return
-    raise error
+        raise error
 
 
 async def setup(bot: commands.Bot):
-    cog = NameTracker(bot)
-    bot.tree.add_command(cog.settings_group)
-    await bot.add_cog(cog)
+    await bot.add_cog(NameTracker(bot))
 
 
 

@@ -1,19 +1,20 @@
-from ast import increment_lineno
-
 import discord
 from discord.ext import commands
 from discord import app_commands
 import logging
 from dotenv import load_dotenv
 import os
+
+from unicodedata import category
+
 from Resource import EconomySys
 import asyncio
-from word_system import WordStats
-from word_system import ConfirmView
+#from word_system import WordStats
+#from word_system import ConfirmView
 from datetime import datetime, timedelta, timezone
 import random
 
-wordstats = WordStats()
+#wordstats = WordStats()
 
 load_dotenv()
 token = os.getenv("DISCORD_TOKEN")
@@ -31,7 +32,17 @@ economy = EconomySys()
 
 GUILD_ID = discord.Object(id=1221350780842414120)
 #1221350780842414120 my server
-#1413923727800008868 mize server
+#1413923727800008868 mi-ze server
+
+async def load_cogs():
+    for filename in os.listdir("./cogs"):
+        if filename.endswith(".py"):
+            await bot.load_extension(f"cogs.{filename[:-3]}")
+            print(f"Loaded cog: {filename}")
+
+@bot.event
+async def setup_hook():
+    await load_cogs()
 
 @bot.event
 async def on_ready():
@@ -61,7 +72,7 @@ async def stats(interaction: discord.Interaction):
     power = economy.get_field(user.id, "Pow")
     guts = economy.get_field(user.id, "Gut")
     wisdom = economy.get_field(user.id, "Wis")
-    skillp = economy.get_field(user.id, "s_point")
+    skill_p = economy.get_field(user.id, "s_point")
     carat = economy.get_field(user.id, "balance")
 
     embed = discord.Embed(title=f"{user.display_name}'s Statistic",
@@ -71,7 +82,7 @@ async def stats(interaction: discord.Interaction):
     embed.set_thumbnail(url="https://res.cloudinary.com/haricebox/image/upload/v1784897807/i_carat.png")
     embed.add_field(name=f'<:speed:1530108148663451768> | <:stamina:1530108146519904256> | <:power:1530108150794027009> | <:guts:1530108152677138503> | <:wisdom:1530108154526826496>',
                     value=f"{speed}|{stamina}|{power}|{guts}|{wisdom}", inline=False)
-    embed.add_field(name="Skill Points", value=f"{skillp}", inline=True)
+    embed.add_field(name="Skill Points", value=f"{skill_p}", inline=True)
     embed.add_field(name="Your Carats", value=f"{carat}", inline=True)
     embed.set_footer(text="Tazuna quote here")
     await interaction.response.send_message(embed=embed)
@@ -397,7 +408,17 @@ async def ev_train(interaction: discord.Interaction,duration:int = EVENT_DURATIO
 
         await embed_result.delete()
 
-#-----------------------------RP LISTING----------------------------------#
+#-----------------------------ITEMS----------------------------------#
+from cogs import item_registry as registry
+print(registry.__file__)
+print(registry.CATALOG_PATH)
+print(len(registry._data["items"]))
+
+item_id,item = registry.roll_item() # weighted roll, any category
+item_id,item = registry.roll_item(category="skill") # above but category
+target = registry.get_upgrade_target(item_id) #what it upgrades into
+chain = registry.get_full_chain(item_id) #the whole common to xxr ?
+
 
 
 #-----------------------------DEBUGGING----------------------------------#
