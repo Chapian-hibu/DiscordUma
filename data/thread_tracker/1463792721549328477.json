@@ -1,20 +1,4 @@
 {
-  "threads": {
-    "1469671841286197258": {
-      "channel_id": 1469360630497546445,
-      "created_at": "2026-08-17T02:02:31.032187+00:00",
-      "last_activity": "2026-08-17T02:06:15.260511+00:00",
-      "archive_duration_minutes": 4320,
-      "participants": [
-        "741513132824068197"
-      ],
-      "last_poster": "741513132824068197",
-      "awaiting": [],
-      "reminder_stage": 0,
-      "status": "snoozed",
-      "snooze_until": "2026-08-18T02:06:22.874080+00:00",
-      "word_count_total": 1
-    }
-  },
+  "threads": {},
   "settings": {}
 }

@@ -1,18 +1,12 @@
 import discord
 from discord.ext import commands
-from discord import app_commands
 import logging
 from dotenv import load_dotenv
 import os
 
 #from unicodedata import category
-
-from Resource import EconomySys
-import asyncio
 #from word_system import WordStats
 #from word_system import ConfirmView
-from datetime import datetime, timedelta, timezone
-import random
 
 #wordstats = WordStats()
 
@@ -26,9 +20,6 @@ intents.members = True
 intents.message_content = True
 
 bot = commands.Bot(command_prefix='!', intents=intents)
-
-#Initialize the economy system
-economy = EconomySys()
 
 GUILD_ID = discord.Object(id=1221350780842414120)
 #1221350780842414120 my server
@@ -61,109 +52,6 @@ async def hello(interaction: discord.Interaction):
     await interaction.response.send_message('Hi there!')
 
 #UmaBot
-
-# -----------------------------STAT CHECK------------------------------------------#
-@bot.tree.command(name='stats',description='Check your stats!')
-async def stats(interaction: discord.Interaction):
-
-    user = interaction.user
-    speed = economy.get_field(user.id,"Spd")
-    stamina = economy.get_field(user.id, "Stm")
-    power = economy.get_field(user.id, "Pow")
-    guts = economy.get_field(user.id, "Gut")
-    wisdom = economy.get_field(user.id, "Wis")
-    skill_p = economy.get_field(user.id, "s_point")
-    carat = economy.get_field(user.id, "balance")
-
-    embed = discord.Embed(title=f"{user.display_name}'s Statistic",
-                          description="This is your stats",
-                          color=0x52ff54)
-    embed.set_author(name="Your Character Stat's")
-    embed.set_thumbnail(url="https://res.cloudinary.com/haricebox/image/upload/v1784897807/i_carat.png")
-    embed.add_field(name=f'<:speed:1530108148663451768> | <:stamina:1530108146519904256> | <:power:1530108150794027009> | <:guts:1530108152677138503> | <:wisdom:1530108154526826496>',
-                    value=f"{speed}|{stamina}|{power}|{guts}|{wisdom}", inline=False)
-    embed.add_field(name="Skill Points", value=f"{skill_p}", inline=True)
-    embed.add_field(name="Your Carats", value=f"{carat}", inline=True)
-    embed.set_footer(text="Tazuna quote here")
-    await interaction.response.send_message(embed=embed)
-
-DAILY_COOL_DOWN_HOURS = 24
-
-@bot.tree.command(name='daily',description='Collect your daily rewards')
-async def daily(interaction: discord.Interaction):
-    """Claim daily coins"""
-    user_id = interaction.user.id
-    now = datetime.now(timezone.utc)
-
-    last_daily_iso = economy.get_last_cd(user_id)
-
-    if last_daily_iso is not None:
-        last_claim = datetime.fromisoformat(last_daily_iso)
-        next_available = last_claim + timedelta(hours=DAILY_COOL_DOWN_HOURS)
-
-        if now < next_available:
-            remaining = next_available - now
-            hours, remainder = divmod(int(remaining.total_seconds()), 3600)
-            minutes, seconds = divmod(remainder, 60)
-
-            await interaction.response.send_message(
-                f'{interaction.user.mention} Nhận thưởng hôm nay rồi mà?'
-                f'Hỏi lại sau **{hours} giờ {minutes} phút và {seconds} giây ** nhé!'
-                )
-            return
-
-    amount = 30 #45
-    new_balance = economy.increment_field(user_id, "balance",amount)
-    economy.set_last_cd(user_id,now.isoformat())
-
-    await interaction.response.send_message(f'{interaction.user.mention} đã nhận thưởng hàng ngày {amount}<:I_Carat:1530209008814657689>'
-                   f'Giờ bạn có {new_balance}<:I_Carat:1530209008814657689>'
-                   )
-
-@bot.command(name='transfer')
-async def transfer(ctx, member: discord.Member, field ,amount: int):
-    """Transfer money to another user"""
-    if amount <= 0:
-        await ctx.send("Amount must be positive!")
-        return
-
-    if member.id == ctx.author.id:
-        await ctx.send("You can't pay yourself!")
-        return
-
-    result = economy.index_field(ctx.author.id, member.id,field ,amount)
-    #transfer_money(ctx.author.id, member.id, amount)
-
-    if result["success"]:
-        await ctx.send(f'{ctx.author.mention}{field} paid {member.mention} {amount}')
-    else:
-        await ctx.send(f'{ctx.author.mention}, {result["message"]}')
-
-@bot.command(name='leaderboard', aliases=['lb', 'top'])
-async def leaderboard(ctx):
-    """Show top 10 richest users"""
-    top_users = economy.leaderboard(10)
-
-    if not top_users:
-        await ctx.send("No users in the economy yet!")
-        return
-
-    embed = discord.Embed(title="💰 Economy Leaderboard", color=discord.Color.gold())
-
-    description = ""
-    for index, (user_id, balances) in enumerate(top_users, 1):
-        user = await bot.fetch_user(int(user_id))
-        description += f"**{index}.** {user.name} - {balances} <:I_Carat:1530209008814657689>\n"
-
-    embed.description = description
-    await ctx.send(embed=embed)
-
-@bot.command(name='set balance')
-@commands.has_permissions(administrator=True)
-async def set_balance(ctx, member: discord.Member,field: str, amount: int):
-    """Set a user's balance (Admin only)"""
-    economy.set_field(member.id, field, amount)
-    await ctx.send(f'Set {member.mention}\'s {field} to {amount}')
 #----------------------------WORDINGS----------------------------------#
 """
 @bot.event
@@ -292,124 +180,8 @@ async def count_cancel(ctx: commands.Context):
     await ctx.send("Stopping the backfill... it'll halt after the current message.")
 """
 # -----------------------------TRAINING EVENT-------------------------------------#
-EVENT_EMOTE = "<:I_Carat:1530209008814657689>"
-EVENT_DURATION = 10
-MAX_TRAINEES =6
-
-@bot.tree.command(name="training", description= "Force start a training phase")
-@app_commands.describe(duration= "Seconds to stop a training phase")
-async def ev_train(interaction: discord.Interaction,duration:int = EVENT_DURATION):
-
-    await interaction.response.send_message(f"Training phase started in {duration} seconds",ephemeral=True)
-
-    channel = interaction.channel
-
-    train_type, default_multiplier =  economy.default_train_type()
-
-    embed = discord.Embed(description=f"Today training regime will be {train_type}",
-                          color=0x86e6fe)
-
-    raw_train_value = economy.default_train_value()
-
-    fail_check = economy.default_fail_value(raw_train_value)
-
-    embed.set_thumbnail(url="https://res.cloudinary.com/haricebox/image/upload/v1784897807/i_carat.png")
-    for i in range(1,7):
-
-        embed.add_field(name=f"Friend {i}", value= "Pending", inline=True)
-    embed.set_footer(text=f"Failure rate : {fail_check}%")
-
-    event_message = await channel.send(embed=embed)
-
-    await event_message.add_reaction(EVENT_EMOTE)
-
-    #await asyncio.sleep(duration)
-
-    # Collect Participants - exclude bot duhh
-    trainee = set()
-    end_time = asyncio.get_event_loop().time() + duration
-
-    def check(paid):
-        return(
-            paid.message_id == event_message.id
-            and str(paid.emoji) == EVENT_EMOTE
-            and paid.member is not None
-            and not paid.member.bot
-        )
-    while len(trainee) < MAX_TRAINEES:
-        remaining = end_time - asyncio.get_event_loop().time()
-        if remaining <= 0:
-            break
-        try:
-            payload = await bot.wait_for("raw_reaction_add",
-                                         timeout=remaining,
-                                         check = check)
-        except asyncio.TimeoutError:
-            break
-
-        if payload.member in trainee:
-            continue
-        trainee.add(payload.member)
-
-        slot_index = len(trainee) -1
-        embed.set_field_at(slot_index,name=f"Friend {slot_index +1}",
-                           value = payload.member.mention,inline=True)
-        current_reduction = len(trainee) *10
-        current_adjusted_fail = max(0,fail_check - current_reduction)
-        embed.set_footer(text=f"Failure rate : {current_adjusted_fail}%")
-
-        await event_message.edit(embed=embed)
-
-    try:
-        await event_message.delete()
-    except discord.NotFound:
-        pass
-
-    if not trainee:
-        miss_embed = discord.Embed(description="but no one came..")
-        event_response = await channel.send(embed=miss_embed)
-
-        await asyncio.sleep(10)
-
-        await event_response.delete()
-        return
-    participant_count = min(len(trainee), 6)
-    adjusted_fail_check = max(0,fail_check - participant_count*10)
-
-    success_rate = random.randint(0,100)
-
-    if success_rate < adjusted_fail_check:
-        miss_embed = discord.Embed(description="Training failed, ah dang!")
-        event_response = await channel.send(embed=miss_embed)
-
-        await asyncio.sleep(15)
-
-        await event_response.delete()
-        return
-    else:
-        mentions = ", ".join(u.mention for u in trainee)
-        success_embed = discord.Embed(description=f"{mentions} have successfully trained",
-                                      color=0x86e6fe
-                                      )
-
-        embed_result = await channel.send(embed=success_embed)
-
-        bag = ["Spd", "Stm", "Pow", "Gut", "Wis"]
-
-        for user in trainee:
-            skill_point = default_multiplier[5]
-            economy.increment_field(user.id,"s_point", skill_point)
-            for i, stat_type in enumerate(bag):
-                addition_value = round(raw_train_value * default_multiplier[i])
-                economy.increment_field(user.id, stat_type, addition_value)
-
-
-        await asyncio.sleep(30)
-
-        await embed_result.delete()
 
 #-----------------------------ITEMS----------------------------------#
-import item_registry as ir_module
 from item_registry import registry
 
 item_id,item = registry.roll_item() # weighted roll, any category
@@ -425,8 +197,6 @@ async def sync_commands(ctx):
     print(f"Started syncing {len(synced)} commands globally.")
     for cmd in synced:
         print(f"  - /{cmd.name}: {cmd.description}")
-
-
 
 # Run the bot
 bot.run(token, log_handler=handler,log_level=logging.DEBUG)
