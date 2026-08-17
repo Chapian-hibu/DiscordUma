@@ -20,7 +20,7 @@ import random
 # directory — so this works correctly whether item_registry.py sits next
 # to main.py or inside cogs/, and regardless of where the bot is launched from.
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-CATALOG_PATH = os.path.join(_THIS_DIR, "data", "catalog", "game_items.json")
+CATALOG_PATH = os.path.join("data", "catalog", "game_items.json")
 
 
 class ItemRegistry:
@@ -144,7 +144,4 @@ class ItemRegistry:
 
         return None
 
-
-# Shared singleton instance other cogs can import directly:
-#   from item_registry import registry
 registry = ItemRegistry()

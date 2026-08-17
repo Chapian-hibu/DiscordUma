@@ -1,0 +1,265 @@
+{
+  "rarity_weights": {
+    "COM": 50.0,
+    "RAR": 30.0,
+    "SR": 12.0,
+    "SSR": 6.0,
+    "UR": 1.8,
+    "LEG": 0.2
+  },
+  "rarity_order": ["COM", "RAR", "SR", "SSR", "UR", "LEG"],
+  "items": {
+    "SKL-COM-001": {
+      "name": "Basic Slash",
+      "category": "skill",
+      "rarity": "COM",
+      "description": "A simple attack skill. Deals minor damage.",
+      "abilities": [
+        { "effect": "damage", "value": 10 }
+      ],
+      "tradeable": true,
+      "upgrade_to": "SKL-RAR-001",
+      "upgrade_from": null
+    },
+    "SKL-RAR-001": {
+      "name": "Enhanced Slash",
+      "category": "skill",
+      "rarity": "RAR",
+      "description": "An improved slash with a chance to crit.",
+      "abilities": [
+        { "effect": "damage", "value": 18 },
+        { "effect": "crit_chance", "value": 0.1 }
+      ],
+      "tradeable": true,
+      "upgrade_to": "SKL-SR-001",
+      "upgrade_from": "SKL-COM-001"
+    },
+    "SKL-SR-001": {
+      "name": "Piercing Slash",
+      "category": "skill",
+      "rarity": "SR",
+      "description": "A powerful slash that ignores part of the target's defense.",
+      "abilities": [
+        { "effect": "damage", "value": 30 },
+        { "effect": "crit_chance", "value": 0.15 },
+        { "effect": "armor_pierce", "value": 0.2 }
+      ],
+      "tradeable": true,
+      "upgrade_to": "SKL-SSR-001",
+      "upgrade_from": "SKL-RAR-001"
+    },
+    "SKL-SSR-001": {
+      "name": "Blazing Slash",
+      "category": "skill",
+      "rarity": "SSR",
+      "description": "A slash imbued with fire, dealing damage over time.",
+      "abilities": [
+        { "effect": "damage", "value": 45 },
+        { "effect": "crit_chance", "value": 0.2 },
+        { "effect": "armor_pierce", "value": 0.25 },
+        { "effect": "burn", "value": 5, "duration_turns": 3 }
+      ],
+      "tradeable": false,
+      "upgrade_to": "SKL-UR-001",
+      "upgrade_from": "SKL-SR-001"
+    },
+    "SKL-UR-001": {
+      "name": "Meteor Slash",
+      "category": "skill",
+      "rarity": "UR",
+      "description": "A devastating slash that calls down a meteor on impact.",
+      "abilities": [
+        { "effect": "damage", "value": 70 },
+        { "effect": "crit_chance", "value": 0.25 },
+        { "effect": "armor_pierce", "value": 0.35 },
+        { "effect": "burn", "value": 8, "duration_turns": 3 },
+        { "effect": "aoe_splash", "value": 0.5 }
+      ],
+      "tradeable": false,
+      "upgrade_to": "SKL-LEG-001",
+      "upgrade_from": "SKL-SSR-001"
+    },
+    "SKL-LEG-001": {
+      "name": "World-Ending Slash",
+      "category": "skill",
+      "rarity": "LEG",
+      "description": "A legendary technique said to end an era with one strike.",
+      "abilities": [
+        { "effect": "damage", "value": 120 },
+        { "effect": "crit_chance", "value": 0.35 },
+        { "effect": "armor_pierce", "value": 0.5 },
+        { "effect": "burn", "value": 12, "duration_turns": 4 },
+        { "effect": "aoe_splash", "value": 1.0 },
+        { "effect": "execute_threshold", "value": 0.15 }
+      ],
+      "tradeable": false,
+      "upgrade_to": null,
+      "upgrade_from": "SKL-UR-001"
+    },
+
+    "EQP-COM-001": {
+      "name": "Worn Running Shoes",
+      "category": "equipment",
+      "rarity": "COM",
+      "description": "Basic shoes. A small speed boost.",
+      "abilities": [
+        { "effect": "stat_boost", "stat": "Spd", "value": 2 }
+      ],
+      "tradeable": true,
+      "upgrade_to": "EQP-RAR-001",
+      "upgrade_from": null
+    },
+    "EQP-RAR-001": {
+      "name": "Sport Running Shoes",
+      "category": "equipment",
+      "rarity": "RAR",
+      "description": "Lightweight shoes built for speed.",
+      "abilities": [
+        { "effect": "stat_boost", "stat": "Spd", "value": 5 }
+      ],
+      "tradeable": true,
+      "upgrade_to": "EQP-SR-001",
+      "upgrade_from": "EQP-COM-001"
+    },
+    "EQP-SR-001": {
+      "name": "Racing Spikes",
+      "category": "equipment",
+      "rarity": "SR",
+      "description": "Professional-grade spikes for serious racers.",
+      "abilities": [
+        { "effect": "stat_boost", "stat": "Spd", "value": 9 },
+        { "effect": "stat_boost", "stat": "Gut", "value": 2 }
+      ],
+      "tradeable": true,
+      "upgrade_to": "EQP-SSR-001",
+      "upgrade_from": "EQP-RAR-001"
+    },
+    "EQP-SSR-001": {
+      "name": "Windwalker Spikes",
+      "category": "equipment",
+      "rarity": "SSR",
+      "description": "Enchanted spikes that seem to catch the wind itself.",
+      "abilities": [
+        { "effect": "stat_boost", "stat": "Spd", "value": 14 },
+        { "effect": "stat_boost", "stat": "Gut", "value": 4 },
+        { "effect": "passive", "name": "second_wind", "value": 0.1 }
+      ],
+      "tradeable": false,
+      "upgrade_to": "EQP-UR-001",
+      "upgrade_from": "EQP-SR-001"
+    },
+    "EQP-UR-001": {
+      "name": "Comet-Forged Spikes",
+      "category": "equipment",
+      "rarity": "UR",
+      "description": "Forged from a fallen star. Legends say the wearer never tires.",
+      "abilities": [
+        { "effect": "stat_boost", "stat": "Spd", "value": 20 },
+        { "effect": "stat_boost", "stat": "Gut", "value": 6 },
+        { "effect": "passive", "name": "second_wind", "value": 0.2 }
+      ],
+      "tradeable": false,
+      "upgrade_to": "EQP-LEG-001",
+      "upgrade_from": "EQP-SSR-001"
+    },
+    "EQP-LEG-001": {
+      "name": "Starfall Spikes",
+      "category": "equipment",
+      "rarity": "LEG",
+      "description": "The final form of a legend's equipment. Speed given form.",
+      "abilities": [
+        { "effect": "stat_boost", "stat": "Spd", "value": 30 },
+        { "effect": "stat_boost", "stat": "Gut", "value": 10 },
+        { "effect": "passive", "name": "second_wind", "value": 0.35 },
+        { "effect": "passive", "name": "photo_finish", "value": 0.1 }
+      ],
+      "tradeable": false,
+      "upgrade_to": null,
+      "upgrade_from": "EQP-UR-001"
+    },
+
+    "CSM-COM-001": {
+      "name": "Small Energy Drink",
+      "category": "consumable",
+      "rarity": "COM",
+      "description": "Restores a small amount of stamina.",
+      "abilities": [
+        { "effect": "restore", "stat": "stamina", "value": 10 }
+      ],
+      "tradeable": true,
+      "stackable": true,
+      "upgrade_to": "CSM-RAR-001",
+      "upgrade_from": null
+    },
+    "CSM-RAR-001": {
+      "name": "Energy Drink",
+      "category": "consumable",
+      "rarity": "RAR",
+      "description": "Restores a moderate amount of stamina.",
+      "abilities": [
+        { "effect": "restore", "stat": "stamina", "value": 25 }
+      ],
+      "tradeable": true,
+      "stackable": true,
+      "upgrade_to": "CSM-SR-001",
+      "upgrade_from": "CSM-COM-001"
+    },
+    "CSM-SR-001": {
+      "name": "Premium Energy Drink",
+      "category": "consumable",
+      "rarity": "SR",
+      "description": "Restores a large amount of stamina and grants a brief buff.",
+      "abilities": [
+        { "effect": "restore", "stat": "stamina", "value": 45 },
+        { "effect": "temp_buff", "stat": "Spd", "value": 3, "duration_turns": 2 }
+      ],
+      "tradeable": true,
+      "stackable": true,
+      "upgrade_to": "CSM-SSR-001",
+      "upgrade_from": "CSM-RAR-001"
+    },
+    "CSM-SSR-001": {
+      "name": "Golden Energy Drink",
+      "category": "consumable",
+      "rarity": "SSR",
+      "description": "Fully restores stamina and grants a solid stat buff.",
+      "abilities": [
+        { "effect": "restore", "stat": "stamina", "value": 999 },
+        { "effect": "temp_buff", "stat": "Spd", "value": 6, "duration_turns": 3 }
+      ],
+      "tradeable": false,
+      "stackable": true,
+      "upgrade_to": "CSM-UR-001",
+      "upgrade_from": "CSM-SR-001"
+    },
+    "CSM-UR-001": {
+      "name": "Elixir of the Champion",
+      "category": "consumable",
+      "rarity": "UR",
+      "description": "Fully restores stamina and buffs all stats briefly.",
+      "abilities": [
+        { "effect": "restore", "stat": "stamina", "value": 999 },
+        { "effect": "temp_buff_all", "value": 5, "duration_turns": 3 }
+      ],
+      "tradeable": false,
+      "stackable": true,
+      "upgrade_to": "CSM-LEG-001",
+      "upgrade_from": "CSM-SSR-001"
+    },
+    "CSM-LEG-001": {
+      "name": "Miracle Tonic",
+      "category": "consumable",
+      "rarity": "LEG",
+      "description": "A legendary tonic that removes all negative effects and grants a major buff.",
+      "abilities": [
+        { "effect": "restore", "stat": "stamina", "value": 999 },
+        { "effect": "cleanse", "value": true },
+        { "effect": "temp_buff_all", "value": 10, "duration_turns": 4 }
+      ],
+      "tradeable": false,
+      "stackable": true,
+      "upgrade_to": null,
+      "upgrade_from": "CSM-UR-001"
+    }
+  }
+}

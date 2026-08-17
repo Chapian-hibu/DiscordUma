@@ -5,7 +5,7 @@ import logging
 from dotenv import load_dotenv
 import os
 
-from unicodedata import category
+#from unicodedata import category
 
 from Resource import EconomySys
 import asyncio
@@ -36,7 +36,7 @@ GUILD_ID = discord.Object(id=1221350780842414120)
 
 async def load_cogs():
     for filename in os.listdir("./cogs"):
-        if filename.endswith(".py"):
+        if filename.endswith(".py") :
             await bot.load_extension(f"cogs.{filename[:-3]}")
             print(f"Loaded cog: {filename}")
 
@@ -409,17 +409,13 @@ async def ev_train(interaction: discord.Interaction,duration:int = EVENT_DURATIO
         await embed_result.delete()
 
 #-----------------------------ITEMS----------------------------------#
-from cogs import item_registry as registry
-print(registry.__file__)
-print(registry.CATALOG_PATH)
-print(len(registry._data["items"]))
+import item_registry as ir_module
+from item_registry import registry
 
 item_id,item = registry.roll_item() # weighted roll, any category
-item_id,item = registry.roll_item(category="skill") # above but category
+item2_id,item2 = registry.roll_item(category="skill") # above but category
 target = registry.get_upgrade_target(item_id) #what it upgrades into
 chain = registry.get_full_chain(item_id) #the whole common to xxr ?
-
-
 
 #-----------------------------DEBUGGING----------------------------------#
 @bot.command(name='sync')
