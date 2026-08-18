@@ -4,6 +4,7 @@ import logging
 from dotenv import load_dotenv
 import os
 
+
 #from unicodedata import category
 #from word_system import WordStats
 #from word_system import ConfirmView
@@ -198,6 +199,7 @@ async def sync_commands(ctx):
     for cmd in synced:
         print(f"  - /{cmd.name}: {cmd.description}")
 
+#Bot setup running for a webservice
 # Run the bot
 bot.run(token, log_handler=handler,log_level=logging.DEBUG)
 
