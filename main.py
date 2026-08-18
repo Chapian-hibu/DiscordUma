@@ -3,7 +3,8 @@ from discord.ext import commands
 import logging
 from dotenv import load_dotenv
 import os
-
+import threading
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 #from unicodedata import category
 #from word_system import WordStats
@@ -199,7 +200,28 @@ async def sync_commands(ctx):
     for cmd in synced:
         print(f"  - /{cmd.name}: {cmd.description}")
 
+
 #Bot setup running for a webservice
+
+
+
+class HealthCheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Bot is running")
+
+    def log_message(self, format, *args):
+        pass
+
+
+def run_health_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(("0.0.0.0", port), HealthCheckHandler)
+    server.serve_forever()
+
+
+threading.Thread(target=run_health_server, daemon=True).start()
 # Run the bot
 bot.run(token, log_handler=handler,log_level=logging.DEBUG)
 
