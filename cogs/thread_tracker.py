@@ -9,7 +9,8 @@ import os
 import random
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-CATALOG_PATH = os.path.join(_THIS_DIR, "data", "catalog", "game_items.json")
+PARENT_DIR = os.path.dirname(_THIS_DIR)
+CATALOG_PATH = os.path.join(PARENT_DIR, "data", "catalog", "game_items.json")
 
 
 class ItemRegistry:
