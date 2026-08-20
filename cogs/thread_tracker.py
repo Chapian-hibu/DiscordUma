@@ -1,13 +1,7 @@
-import json
-import os
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
 from datetime import datetime, timedelta, timezone
-
-
-DATA_DIR = "data/thread_tracker"
-os.makedirs(DATA_DIR, exist_ok=True)
 
 # Discord archive duration in minutes
 ARCHIVE_DURATION = {60, 1440, 4320, 10080}
@@ -30,78 +24,65 @@ def _iso(dt: datetime) -> str:
 def _parse(ts: str) -> datetime:
     return datetime.fromisoformat(ts)
 
+class ThreadStore:  # was missing commands.Cog inheritance -> fixed
+    def __init__(self,db):
+        self.threads = db["thread"]
+        self.settings = db["guild_settings"]
 
-class GuildThreadStore:
-    # Handles load/save of a single guild's thread_tracker.json
-    def __init__(self, guild_id: int):
-        self.guild_id = guild_id
-        self.path = os.path.join(DATA_DIR, f"{guild_id}.json")
-        self.data = self._load()
+    #--------------------Thread entries-------------------------#
+    async def get_thread(self, thread_id: int) -> dict|None:
+        return await self.threads.find_one({"_id": thread_id})
 
-    def _load(self) -> dict:
-        if os.path.exists(self.path):
-            with open(self.path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        return {"threads": {}, "settings": {}}
+    async def set_thread(self,thread_id:int,guild_id:int,entry:dict):
+        doc = dict(entry)
+        doc["_id"] = str(thread_id)
+        doc["guild_id"] = guild_id
+        await self.threads.replace_one({"_id": str(thread_id)},
+                                       doc,
+                                       upsert=True)
 
-    def save(self):
-        with open(self.path, "w", encoding="utf-8") as f:  # was "r" -> fixed to "w"
-            json.dump(self.data, f, indent=2)
+    async def delete_thread(self,thread_id:int):
+        await self.threads.delete_one({"_id": str(thread_id)})
 
-    # Accessors
-    def get_thread(self, thread_id: int) -> dict | None:
-        return self.data["threads"].get(str(thread_id))
+    async def all_threads(self,guild_id:int)->list[dict]:
+        cursor = self.threads.find({"guild_id": guild_id})
+        return await cursor.to_list(length=None)
 
-    def set_thread(self, thread_id: int, entry: dict):
-        self.data["threads"][str(thread_id)] = entry
-        self.save()
+    #----------------------Guild settings------------------------#
+    async def get_setting(self,guild_id: int,key:str,default = None):
+        doc = await self.settings.find_one({"_id":str(guild_id)})
+        if doc is None:
+            return default
+        return doc.get(key,default)
 
-    def delete_thread(self, thread_id: int):
-        self.data["threads"].pop(str(thread_id), None)
-        self.save()
+    async def set_setting(self,guild_id:int,key:str,value):
+        await self.settings.update_one({"_id":str(guild_id)},
+                                       {"$set":{key:value}},
+                                       upsert=True)
 
-    def all_threads(self) -> dict:
-        return self.data["threads"]
-
-    def get_setting(self, key: str, default=None):
-        return self.data["settings"].get(key, default)
-
-    def set_setting(self, key: str, value):
-        self.data["settings"][key] = value
-        self.save()
-
-
-class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fixed
-
+class ThreadTracker(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.stores: dict[int, GuildThreadStore] = {}
+        self.store = ThreadStore(bot.db)
         self.reminder_loop.start()
 
     def cog_unload(self):
         self.reminder_loop.cancel()
 
-    # Store helper
-    def get_store(self, guild_id: int) -> GuildThreadStore:
-        if guild_id not in self.stores:
-            self.stores[guild_id] = GuildThreadStore(guild_id)
-        return self.stores[guild_id]
-
-    # Slash command group
     thread_group = app_commands.Group(
-        name="thread", description="Threads tracking and reminders"
+        name="thread",
+        description="Tập lệnh theo dõi bài thread"
     )
 
-    @thread_group.command(name="track", description="Start tracking this thread for archive reminders")
+    @thread_group.command(name="track", description="Bắt đầu theo dõi bài này")
     async def track(self, interaction: discord.Interaction):
         thread = interaction.channel
         if not isinstance(thread, discord.Thread):
             await interaction.response.send_message(
-                "This command only works inside a thread", ephemeral=True
+                "Lệnh chỉ dùng cho threads", ephemeral=True
             )
             return
 
-        store = self.get_store(interaction.guild_id)
         duration = thread.auto_archive_duration or 1440
 
         entry = {
@@ -118,85 +99,81 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
             "word_count_total": 0,
         }
 
-        store.set_thread(thread.id, entry)
+        await self.store.set_thread(thread.id,interaction.guild.id,entry)
         await interaction.response.send_message(
-            f"Now tracking **{thread.name}** "
-            f"(archives after {duration} minutes of inactivity)",
-            ephemeral=True,  # was "empheral" -> fixed
+            f"Đang theo dõi **{thread.name}** "
+            f"(Sẽ lưu trữ sau {duration} minutes of inactivity)",
+            ephemeral=True,
         )
 
-    @thread_group.command(name="untrack", description="Stop tracking this thread")
+    @thread_group.command(name="untrack", description="Ngừng theo dõi bài này")
     async def untrack(self, interaction: discord.Interaction):
         thread = interaction.channel
         if not isinstance(thread, discord.Thread):
             await interaction.response.send_message(
-                "This command only works inside a thread", ephemeral=True
+                "Lệnh chỉ dùng cho threads", ephemeral=True
             )
             return
-        store = self.get_store(interaction.guild_id)
-        store.delete_thread(thread.id)
+        await self.store.delete_thread(thread.id)
         await interaction.response.send_message(
-            f"Stopped tracking **{thread.name}**", ephemeral=True
+            f"Đã dừng theo dõi **{thread.name}**!", ephemeral=True
         )
 
-    @thread_group.command(name="snooze", description="Snooze reminders for this thread")
-    @app_commands.describe(days="Number of days to snooze")  # was "reason" -> fixed to match param name
+    @thread_group.command(name="snooze", description="Cho ngủ* bài này")
+    @app_commands.describe(days="Số ngày ngủ")
     async def snooze(self, interaction: discord.Interaction, days: int):
         thread = interaction.channel
         if not isinstance(thread, discord.Thread):
             await interaction.response.send_message(
-                "This command only works inside a thread", ephemeral=True
+                "Lệnh chỉ dùng cho threads", ephemeral=True
             )
             return
-        store = self.get_store(interaction.guild_id)
-        entry = store.get_thread(thread.id)
+        entry = await self.store.get_thread(thread.id)
         if entry is None:
             await interaction.response.send_message(
-                "Thread isn't being tracked. Use /thread track first", ephemeral=True
+                "Bài chưa theo dõi, hãy dùng lệnh '/thread track' trước", ephemeral=True
             )
             return
         entry["status"] = "snoozed"
         entry["snooze_until"] = _iso(_now() + timedelta(days=days))
-        store.set_thread(thread.id, entry)
+        await self.store.set_thread(thread.id,interaction.guild_id, entry)
         await interaction.response.send_message(
-            f"Reminders snoozed for **{days}** day(s)", ephemeral=True
+            f"Thread sẽ được nhắc lại sau **{days}** ngày", ephemeral=True
         )
 
-    @thread_group.command(name="pause", description="Pause reminders for this thread")  # was "Pause" (uppercase) -> fixed
+    @thread_group.command(name="pause", description="Tạm dừng theo dõi bài này")
     async def pause(self, interaction: discord.Interaction):
         thread = interaction.channel
         if not isinstance(thread, discord.Thread):
             await interaction.response.send_message(
-                "This command only works inside a thread.", ephemeral=True
+                "Lệnh chỉ dùng cho threads", ephemeral=True
             )
             return
 
-        store = self.get_store(interaction.guild_id)
-        entry = store.get_thread(thread.id)
+        entry = await self.store.get_thread(thread.id)
         if entry is None:
             await interaction.response.send_message(
-                "This thread isn't being tracked.", ephemeral=True
+                "Bài này đang không được theo dõi", ephemeral=True
             )
             return
 
         entry["status"] = "paused"
-        store.set_thread(thread.id, entry)
-        await interaction.response.send_message("Reminders paused for this thread.", ephemeral=True)
+        await self.store.set_thread(thread.id,interaction.guild_id, entry)
+        await interaction.response.send_message("Tạm dừng theo dõi bài này", ephemeral=True)
 
-    @thread_group.command(name="resume", description="Resume reminders for a paused/snoozed thread")
+    @thread_group.command(name="resume", description="Tiếp tục theo dõi bài này")
     async def resume(self, interaction: discord.Interaction):
         thread = interaction.channel
         if not isinstance(thread, discord.Thread):
             await interaction.response.send_message(
-                "This command only works inside a thread.", ephemeral=True
+                "Lệnh chỉ dùng cho threads", ephemeral=True
             )
             return
 
-        store = self.get_store(interaction.guild_id)
-        entry = store.get_thread(thread.id)
+        entry = await self.store.get_thread(thread.id)
         if entry is None:
             await interaction.response.send_message(
-                "This thread isn't being tracked.", ephemeral=True
+                "Bài này đang không được theo dõi", ephemeral=True
             )
             return
 
@@ -204,25 +181,23 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
         entry["snooze_until"] = None
         entry["reminder_stage"] = 0
         entry["last_activity"] = _iso(_now())
-        store.set_thread(thread.id, entry)
-        await interaction.response.send_message("Reminders resumed for this thread.", ephemeral=True)
+        await self.store.set_thread(thread.id,interaction.guild_id, entry)
+        await interaction.response.send_message("Tiếp tục theo dõi bài này", ephemeral=True)
 
-    @thread_group.command(name="status", description="Show all tracked threads and their urgency (GM/mod)")
+    @thread_group.command(name="status", description="Cho xem những bài đang được theo dõi")
     @app_commands.checks.has_permissions(manage_threads=True)
     async def status(self, interaction: discord.Interaction):
-        store = self.get_store(interaction.guild_id)
-        threads = store.all_threads()
+        threads = await self.store.all_threads(interaction.guild_id)
         if not threads:
-            await interaction.response.send_message("No threads are currently tracked.", ephemeral=True)
+            await interaction.response.send_message("Chưa có bài nào được theo dõi")
             return
 
         embed = discord.Embed(
             title="Tracked threads",
             color=discord.Color.blurple(),
         )
-        # Build the full embed across ALL threads first, THEN send once.
-        # (previously this sent/returned inside the loop after the first thread)
-        for thread_id, entry in threads.items():
+        for entry in threads:
+            thread_id = entry["_id"]
             icon = self._status_icon(entry)
             channel = self.bot.get_channel(int(thread_id))
             name = channel.name if channel else f"Unknown ({thread_id})"
@@ -233,7 +208,7 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
                 inline=False,
             )
 
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.response.send_message(embed=embed)
 
     @staticmethod
     def _status_icon(entry: dict) -> str:
@@ -251,8 +226,7 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
         if message.author.bot or not isinstance(message.channel, discord.Thread):
             return
 
-        store = self.get_store(message.guild.id)
-        entry = store.get_thread(message.channel.id)
+        entry = await self.store.get_thread(message.channel.id)
         if entry is None:
             return
 
@@ -267,23 +241,22 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
         entry["status"] = "active"
         entry["word_count_total"] = entry.get("word_count_total", 0) + len(message.content.split())
 
-        store.set_thread(message.channel.id, entry)
+        await self.store.set_thread(message.channel.id,message.guild.id, entry)
 
     # --- background reminder loop -------------------------------------------
 
     @tasks.loop(minutes=30)
     async def reminder_loop(self):
         for guild in self.bot.guilds:
-            store = self.get_store(guild.id)
-            threads = store.all_threads()
-            for thread_id_str, entry in list(threads.items()):
-                await self._check_thread(guild, store, int(thread_id_str), entry)
+            threads = await self.store.all_threads(guild.id)
+            for entry in threads:
+                await self._check_thread(guild, int(entry["_id"]), entry)
 
     @reminder_loop.before_loop
     async def before_reminder_loop(self):
         await self.bot.wait_until_ready()
 
-    async def _check_thread(self, guild: discord.Guild, store: GuildThreadStore, thread_id: int, entry: dict):
+    async def _check_thread(self, guild: discord.Guild, thread_id: int, entry: dict):
         if entry["status"] == "paused":
             return
 
@@ -304,22 +277,21 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
         stage = entry.get("reminder_stage", 0)
 
         if fraction >= STAGE_THRESHOLDS[3] and stage < 3:
-            await self._send_reminder(thread, entry, stage=3, store=store, thread_id=thread_id)
+            await self._send_reminder(thread, entry, stage=3, thread_id=thread_id)
         elif fraction >= STAGE_THRESHOLDS[2] and stage < 2:
-            await self._send_reminder(thread, entry, stage=2, store=store, thread_id=thread_id)
+            await self._send_reminder(thread, entry, stage=2, thread_id=thread_id)
         elif fraction >= STAGE_THRESHOLDS[1] and stage < 1:
             entry["reminder_stage"] = 1
-            store.set_thread(thread_id, entry)
+            await self.store.set_thread(thread_id,guild.id, entry)
 
-    async def _send_reminder(self, thread: discord.Thread, entry: dict, stage: int, store: GuildThreadStore,
-                              thread_id: int):
+    async def _send_reminder(self, thread: discord.Thread, entry: dict, stage: int,thread_id: int):
         awaiting = entry.get("awaiting", [])
         mentions = " ".join(f"<@{u}>" for u in awaiting) if awaiting else "everyone"
 
         if stage == 2:
-            msg = f"This scene's been quiet for a bit — {mentions}, still in it?"
+            msg = f"Ủa alo rep role chưa — {mentions}, nhớ rep role nhé?"
         else:  # stage 3
-            msg = f"⚠️ **{mentions}** — this thread is close to archiving. Reply to keep it active."
+            msg = f"⚠️ **{mentions}** — Bài này ngâm lâu quá rồi, rep role đi ."
 
         try:
             await thread.send(msg)
@@ -327,17 +299,17 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
             pass
 
         entry["reminder_stage"] = stage
-        store.set_thread(thread_id, entry)
+        await self.store.set_thread(thread_id,thread.guild.id, entry)
 
         if stage == 3:
-            gm_channel_id = store.get_setting("gm_notify_channel_id")
+            gm_channel_id = await self.store.get_setting(thread.guild.id, "gm_notify_channel_id")
             if gm_channel_id:
                 gm_channel = self.bot.get_channel(gm_channel_id)
                 if gm_channel:
                     try:
                         await gm_channel.send(
-                            f"🔴 Thread **#{thread.name}** is about to archive. "
-                            f"Still waiting on: {mentions}"
+                            f"🔴 Bài role **#{thread.name}** sắp bị sủi cảo. "
+                            f"Đang chờ rep role của {mentions}"
                         )
                     except discord.Forbidden:
                         pass
@@ -347,25 +319,24 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
     @commands.Cog.listener()
     async def on_thread_update(self, before: discord.Thread, after: discord.Thread):
         if before.archived and not after.archived:
-            store = self.get_store(after.guild.id)
-            entry = store.get_thread(after.id)
+            entry = await self.store.get_thread(after.id)
             if entry is None:
                 return
 
             entry["status"] = "active"
             entry["reminder_stage"] = 0
-            store.set_thread(after.id, entry)
+            await self.store.set_thread(after.id,after.guild.id, entry)
 
             try:
                 dormant_since = _parse(entry["last_activity"])
                 days_dormant = (_now() - dormant_since).days
                 embed = discord.Embed(
-                    title="Welcome back",
-                    description=f"This thread was dormant for **{days_dormant} day(s)**.",
+                    title="Chào mừng",
+                    description=f"Bài này đã bị sủi **{days_dormant} ngày**.",
                     color=discord.Color.green(),
                 )
                 embed.add_field(
-                    name="Total words so far",
+                    name="Tổng số từ",
                     value=str(entry.get("word_count_total", 0)),
                     inline=True,
                 )
@@ -375,13 +346,12 @@ class ThreadTracker(commands.Cog):  # was missing commands.Cog inheritance -> fi
 
     # --- config command --------------------------------------------------------
 
-    @thread_group.command(name="config", description="Set the GM notification channel for archive warnings")
+    @thread_group.command(name="config", description="Đặt cảnh báo cho bài thread")
     @app_commands.checks.has_permissions(manage_guild=True)
     async def config(self, interaction: discord.Interaction, channel: discord.TextChannel):
-        store = self.get_store(interaction.guild_id)
-        store.set_setting("gm_notify_channel_id", channel.id)
+        await self.store.set_setting(interaction.guild.id, "gm_notify_channel_id",channel.id)
         await interaction.response.send_message(
-            f"GM notifications will be sent to {channel.mention}.", ephemeral=True
+            f"Thông báo thread sẽ được gửi ở {channel.mention}.", ephemeral=True
         )
 
 

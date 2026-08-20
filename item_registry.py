@@ -1,57 +1,74 @@
 """
-item_registry.py
-
-Loads the shared gacha item catalog (data/catalog/game_items.json) and
+Loads the shared gacha item catalog (data/catalog/template_game_items.json) and
 provides lookup, upgrade-chain, and weighted-random-roll helpers for
 a future gacha cog to use.
-
-This catalog is global (shared across all guilds) since it defines
-what items exist in the game, not who owns what. Per-user/per-guild
-inventory (who has which item, trade history, etc.) should live in a
-separate store, the same way EconomySys tracks balances separately
-from what currencies exist.
 """
 
 import json
-import os
 import random
 
-# Resolve relative to this file's own location, not the current working
-# directory — so this works correctly whether item_registry.py sits next
-# to main.py or inside cogs/, and regardless of where the bot is launched from.
-_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-CATALOG_PATH = os.path.join("data", "catalog", "game_items.json")
-
-
 class ItemRegistry:
-    def __init__(self, path: str = CATALOG_PATH):
-        self.path = path
-        self._data = self._load()
+    def __init__(self, db):
+        #item data
+        self.collection = db["items"]
+        #Rarity weight
+        self.config_collection = db["config"]
+        self._items:dict[str,dict] = {}
+        self._rarity_weights:dict[str,float] = {}
+        self.rarity_order = self.collection.rarity_order
 
-    def _load(self) -> dict:
-        with open(self.path, "r", encoding="utf-8") as f:
-            return json.load(f)
 
-    def reload(self):
-        """Re-read the catalog from disk (e.g. after manually editing game_items.json)."""
-        self._data = self._load()
+    async def load(self):
+        cursor = self.collection.find({})
+        docs = await cursor.to_list(length=None)
+        self._items = {doc["_id"]:doc for doc in docs}
 
-    # --- basic lookups -------------------------------------------------------
+        weights_doc = await self.config_collection.find_one({"_id":"rarity_weights"})
+        self._rarity_weights = weights_doc["weights"] if weights_doc else {}
 
-    def get_item(self, item_id: str) -> dict | None:
-        return self._data["items"].get(item_id)
+        order_doc = await self.config_collection.find_one({"_id":"rarity_order"})
+        self.rarity_order = order_doc["order"] if order_doc else []
+
+    async def seed_from_json(self,json_path: str):
+        with open(json_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        for item_id, entry in data["items"].items():
+            doc = dict(entry)
+            doc["_id"] = item_id
+            await self.collection.replace_one({"_id": item_id}, doc, upsert=True)
+
+        await self.config_collection.replace_one(
+            {"_id": "rarity_weights"},
+            {"_id": "rarity_weights", "weights": data["rarity_weights"]},
+            upsert=True,
+        )
+
+        if "rarity_order" in data:
+            await self.config_collection.replace_one(
+                {"_id": "rarity_order"},
+                {"_id": "rarity_order", "order": data["rarity_order"]},
+                upsert=True,
+            )
+
+        await self.load()
+
+    # --- basic lookups ----------------------------------#
+
+    def get_item(self, item_id: str):
+        return self._items.get(item_id)
 
     def get_items_by_category(self, category: str) -> dict:
         return {
             iid: entry
-            for iid, entry in self._data["items"].items()
+            for iid, entry in self._items.items()
             if entry["category"] == category
         }
 
     def get_items_by_rarity(self, rarity: str) -> dict:
         return {
             iid: entry
-            for iid, entry in self._data["items"].items()
+            for iid, entry in self._items.items()
             if entry["rarity"] == rarity
         }
 
@@ -94,43 +111,24 @@ class ItemRegistry:
 
     def roll_rarity(self) -> str:
         """Weighted-random pick of a rarity tier based on rarity_weights."""
-        weights = self._data["rarity_weights"]
-        rarities = list(weights.keys())
-        probs = list(weights.values())
+        rarities = list(self._rarity_weights.keys())
+        probs = list(self._rarity_weights.values())
         return random.choices(rarities, weights=probs, k=1)[0]
 
     def roll_item(self, category: str | None = None, rarity: str | None = None) -> tuple[str, dict] | None:
-        """
-        Roll a single gacha item.
-
-        - If rarity is given, rolls only within that rarity.
-        - Otherwise rolls a rarity first (weighted via rarity_weights),
-          then picks a random item actually at that rarity.
-        - If category is given, restricts the pool to that category.
-
-        If the first rolled rarity has no items matching the category
-        filter (e.g. a thin/incomplete catalog), this falls back to
-        trying every other rarity (best-to-worst weight) before giving
-        up, so a gap in one tier doesn't crash the caller.
-
-        Returns (item_id, item_dict), or None only if truly nothing in
-        the whole catalog matches the category filter.
-        """
-        weights = self._data["rarity_weights"]
-
         if rarity:
             rarity_attempts = [rarity]
         else:
             # weighted order: try the rolled rarity first, then fall back
             # through the rest in weighted-random order (not fixed order,
             # so fallback still roughly respects rarity weighting)
-            rarities = list(weights.keys())
-            probs = list(weights.values())
+            rarities = list(self._rarity_weights.keys())
+            probs = list(self._rarity_weights.values())
             rarity_attempts = random.choices(rarities, weights=probs, k=len(rarities))
             # dedupe while preserving order
             seen = set()
             rarity_attempts = [r for r in rarity_attempts if not (r in seen or seen.add(r))]
-            for r in weights:
+            for r in self._rarity_weights:
                 if r not in rarity_attempts:
                     rarity_attempts.append(r)
 
@@ -143,5 +141,3 @@ class ItemRegistry:
                 return item_id, pool[item_id]
 
         return None
-
-registry = ItemRegistry()

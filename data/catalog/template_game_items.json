@@ -1,7 +1,7 @@
 {
   "rarity_weights": {
     "COM": 50.0,
-    "RAR": 34.5,
+    "R": 34.5,
     "SR": 10.0,
     "SSR": 4.5,
     "UR": 0.9,
@@ -9,7 +9,7 @@
   },
   "rarity_order": [
     "COM",
-    "RAR",
+    "R",
     "SR",
     "SSR",
     "UR",
@@ -28,16 +28,16 @@
         }
       ],
       "tradeable": true,
-      "upgrade_to": "SKL-RAR-001",
+      "upgrade_to": "SKL-R-001",
       "upgrade_from": null,
       "tags": [
         "starter"
       ]
     },
-    "SKL-RAR-001": {
+    "SKL-R-001": {
       "name": "Enhanced Slash",
       "category": "skill",
-      "rarity": "RAR",
+      "rarity": "R",
       "description": "An improved slash with a chance to crit.",
       "abilities": [
         {
@@ -75,7 +75,7 @@
       ],
       "tradeable": true,
       "upgrade_to": "SKL-SSR-001",
-      "upgrade_from": "SKL-RAR-001",
+      "upgrade_from": "SKL-R-001",
       "tags": []
     },
     "SKL-SSR-001": {
@@ -198,16 +198,16 @@
         }
       ],
       "tradeable": true,
-      "upgrade_to": "EQP-RAR-001",
+      "upgrade_to": "EQP-R-001",
       "upgrade_from": null,
       "tags": [
         "starter"
       ]
     },
-    "EQP-RAR-001": {
+    "EQP-R-001": {
       "name": "Sport Running Shoes",
       "category": "equipment",
-      "rarity": "RAR",
+      "rarity": "R",
       "description": "Lightweight shoes built for speed.",
       "abilities": [
         {
@@ -240,11 +240,11 @@
       ],
       "tradeable": true,
       "upgrade_to": "EQP-SSR-001",
-      "upgrade_from": "EQP-RAR-001",
+      "upgrade_from": "EQP-R-001",
       "tags": []
     },
     "EQP-SSR-001": {
-      "name": "Windwalker Spikes",
+      "name": "Wind walker Spikes",
       "category": "equipment",
       "rarity": "SSR",
       "description": "Enchanted spikes that seem to catch the wind itself.",
@@ -351,16 +351,16 @@
       ],
       "tradeable": true,
       "stackable": true,
-      "upgrade_to": "CSM-RAR-001",
+      "upgrade_to": "CSM-R-001",
       "upgrade_from": null,
       "tags": [
         "starter"
       ]
     },
-    "CSM-RAR-001": {
+    "CSM-R-001": {
       "name": "Energy Drink",
       "category": "consumable",
-      "rarity": "RAR",
+      "rarity": "R",
       "description": "Restores a moderate amount of stamina.",
       "abilities": [
         {
@@ -396,7 +396,7 @@
       "tradeable": true,
       "stackable": true,
       "upgrade_to": "CSM-SSR-001",
-      "upgrade_from": "CSM-RAR-001",
+      "upgrade_from": "CSM-R-001",
       "tags": []
     },
     "CSM-SSR-001": {
