@@ -17,8 +17,9 @@ from discord import app_commands
 from discord.ext import commands
 from datetime import datetime, timedelta, timezone
 
-SHOP_REROLL_HOURS = 24
-SHOP_STOCK_SIZE = 6
+
+SHOP_REROLL_HOURS = 12
+SHOP_STOCK_SIZE = 10
 SHOP_TAG_FILTER = None
 
 # Price per rarity tier -- tune freely, doesn't touch the catalog itself.
@@ -53,8 +54,6 @@ class ShopStore:
     def __init__(self,db,registry):
         self.collection = db["shop"]
         self.registry = registry
-        print("rarity_weights:", self.registry._rarity_weights)
-        print("items loaded:", len(self.registry._items))
 
     async def _get_doc(self)->dict:
         doc = await self.collection.find_one({"_id": self.DOC_ID})
@@ -163,7 +162,8 @@ class ShopCog(commands.Cog):
                     continue
                 emoji = RARITY_EMOJI.get(item["rarity"], "")
                 price = item_price(item)
-                lines.append(f"{emoji} **{item['name']}** ({item['rarity']}) — {price} {E_CARAT}\n`{item_id}`")
+                #lines.append(f"{emoji} **{item['name']}** ({item['rarity']}) — {price} {E_CARAT}\n`{item_id}`")
+                lines.append(f"{emoji} **{item['name']}** — {price} {E_CARAT}")
             embed.description = "\n\n".join(lines)
 
         remaining = await self.shop_store.time_until_reroll()
@@ -216,7 +216,7 @@ class ShopCog(commands.Cog):
             item = self.registry.get_item(iid)
             if item is None:
                 continue
-            label = f"{item['name']} ({item['rarity']}) - {item_price(item)} {E_CARAT}"
+            label = f"{item['name']} - {item_price(item)}"
             if current.lower() in label.lower() or current.lower() in iid.lower():
                 choices.append(app_commands.Choice(name=label[:100], value=iid))
         return choices[:25]
@@ -250,6 +250,7 @@ class ShopCog(commands.Cog):
             return
 
         await self.economy.decrement_field(interaction.user.id, "carat", total_cost)
+
 
         results = []
         for _ in range(count):
