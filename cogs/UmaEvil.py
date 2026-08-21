@@ -18,6 +18,11 @@ E_CARAT = "<:I_Carat:1530209008814657689>"
 SUITS = ["♠", "♥", "♦", "♣"]
 RANKS = ["A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"]
 
+# Coinflip result <-> Vietnamese display label. Using the SAME two-letter
+# codes as the slash command choices means `result == choice.value` is a
+# real comparison instead of comparing two disjoint vocabularies.
+COIN_LABELS = {"hh": "Ngửa", "tt": "Sấp"}
+
 
 # ---------------------------- Card / hand helpers ---------------------------- #
 
@@ -53,7 +58,7 @@ def format_hand(hand: list[str]) -> str:
 def _cooldown_field(game: str) -> str:
     return "last_gamble" if SHARE_COOLDOWN else f"last_gamble_{game}"
 
-async def check_cooldown(economy,user_id: int, game: str) -> timedelta | None:
+async def check_cooldown(economy, user_id: int, game: str) -> timedelta | None:
     """Returns remaining cooldown as a timedelta if still on cooldown, else None."""
     field = _cooldown_field(game)
     last_iso = await economy.get_field(user_id, field)
@@ -68,7 +73,7 @@ async def check_cooldown(economy,user_id: int, game: str) -> timedelta | None:
         return next_available - now
     return None
 
-async def start_cooldown(economy,user_id: int, game: str):
+async def start_cooldown(economy, user_id: int, game: str):
     field = _cooldown_field(game)
     await economy.set_field(user_id, field, datetime.now(timezone.utc).isoformat())
 
@@ -80,7 +85,7 @@ def format_remaining(remaining: timedelta) -> str:
 
 # ---------------------------- Bet validation ---------------------------- #
 
-async def validate_bet(economy,user_id: int, bet: int) -> str | None:
+async def validate_bet(economy, user_id: int, bet: int) -> str | None:
     """Returns an error message string if the bet is invalid, else None."""
     if bet <= 0:
         return "Đặt cọc bằng 0 sao được chứ"
@@ -95,7 +100,7 @@ async def validate_bet(economy,user_id: int, bet: int) -> str | None:
 # ---------------------------- Blackjack view ---------------------------- #
 
 class BlackjackView(discord.ui.View):
-    def __init__(self, player_id: int, bet: int, deck: list[str], player_hand: list[str], dealer_hand: list[str],economy):
+    def __init__(self, player_id: int, bet: int, deck: list[str], player_hand: list[str], dealer_hand: list[str], economy):
         super().__init__(timeout=60)
         self.player_id = player_id
         self.bet = bet
@@ -232,27 +237,27 @@ class UmaEvil(commands.Cog):
         app_commands.Choice(name="Sấp", value="tt"),
     ])
     async def coinflip(self, interaction: discord.Interaction, bet: int, choice: app_commands.Choice[str]):
-        remaining = await check_cooldown(self.economy,interaction.user.id, "coinflip")
+        remaining = await check_cooldown(self.economy, interaction.user.id, "coinflip")
         if remaining:
             await interaction.response.send_message(
                 f"Vừa chơi xong mà, chờ khoảng **{format_remaining(remaining)}**.", ephemeral=True
             )
             return
 
-        error = validate_bet(self.economy,interaction.user.id, bet)
+        error = await validate_bet(self.economy, interaction.user.id, bet)
         if error:
             await interaction.response.send_message(error, ephemeral=True)
             return
 
-        await start_cooldown(self.economy,interaction.user.id, "coinflip")
+        await start_cooldown(self.economy, interaction.user.id, "coinflip")
         await self.economy.decrement_field(interaction.user.id, "carat", bet)
 
-        result = random.choice(["heads", "tails"])
+        result = random.choice(["hh", "tt"])
         won = result == choice.value
 
-        embed = discord.Embed(title=" Tung đồng goldshi", color=0x86E6FE if won else 0xE64545)
+        embed = discord.Embed(title="🪙 Tung đồng goldshi", color=0x86E6FE if won else 0xE64545)
         embed.add_field(name="Bạn chọn", value=choice.name, inline=True)
-        embed.add_field(name="Kết quả", value=result.capitalize(), inline=True)
+        embed.add_field(name="Kết quả", value=COIN_LABELS[result], inline=True)
 
         if won:
             payout = bet * 2
@@ -262,7 +267,7 @@ class UmaEvil(commands.Cog):
             embed.description = f"Bạn đã bị ăn mất **{bet}** {E_CARAT} từ nhà cái"
 
         new_balance = await self.economy.get_field(interaction.user.id, "carat")
-        embed.set_footer(text=f"Tài khoản mới của bạn: {new_balance} {E_CARAT}")
+        embed.set_footer(text=f"Tài khoản mới của bạn: {new_balance}")
         await interaction.response.send_message(embed=embed)
 
     # -- /blackjack --------------------------------------------------------------
@@ -270,26 +275,26 @@ class UmaEvil(commands.Cog):
     @app_commands.command(name="blackjack", description=f"Play blackjack, bet up to {BET_CAP} carat")
     @app_commands.describe(bet="How much to bet")
     async def blackjack(self, interaction: discord.Interaction, bet: int):
-        remaining = await check_cooldown(self.economy,interaction.user.id, "blackjack")
+        remaining = await check_cooldown(self.economy, interaction.user.id, "blackjack")
         if remaining:
             await interaction.response.send_message(
                 f"Bạn vừa chơi thì phải? Chờ khoảng **{format_remaining(remaining)}**.", ephemeral=True
             )
             return
 
-        error = validate_bet(self.economy,interaction.user.id, bet)
+        error = await validate_bet(self.economy, interaction.user.id, bet)
         if error:
             await interaction.response.send_message(error, ephemeral=True)
             return
 
-        await start_cooldown(self.economy,interaction.user.id, "blackjack")
+        await start_cooldown(self.economy, interaction.user.id, "blackjack")
         await self.economy.decrement_field(interaction.user.id, "carat", bet)
 
         deck = new_deck()
         player_hand = [deck.pop(), deck.pop()]
         dealer_hand = [deck.pop(), deck.pop()]
 
-        view = BlackjackView(interaction.user.id, bet, deck, player_hand, dealer_hand)
+        view = BlackjackView(interaction.user.id, bet, deck, player_hand, dealer_hand, self.economy)
 
         # natural blackjack check -- resolves immediately, no hit/stand needed
         if is_blackjack(player_hand):
@@ -300,7 +305,7 @@ class UmaEvil(commands.Cog):
                 await self.economy.increment_field(interaction.user.id, "carat", bet)
                 embed = view._build_embed(reveal_dealer=True, result_text=f"Cả hai blackjack? Trả lại  **{bet}** {E_CARAT} nè.")
             else:
-                payout = round(bet * 2.5)  # 3:2 blackjack payout on top of the returned stake
+                payout = round(bet * 2.5)  # returns stake + 3:2 winnings in one shot
                 await self.economy.increment_field(interaction.user.id, "carat", payout)
                 embed = view._build_embed(reveal_dealer=True, result_text=f"Blackjack! Bạn thắng **{payout}** {E_CARAT}")
 
