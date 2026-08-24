@@ -141,7 +141,7 @@ def run_health_server():
 
 threading.Thread(target=run_health_server, daemon=True).start()
 # Run the bot
-bot.run(token, log_handler=handler,log_level=logging.DEBUG)
+#bot.run(token, log_handler=handler,log_level=logging.DEBUG)
 
 async def main():
     async with bot:
