@@ -3,6 +3,9 @@ import discord
 import logging
 import certifi
 import threading
+import asyncio
+import sys
+import time
 
 from discord.ext import commands
 from dotenv import load_dotenv
@@ -95,6 +98,8 @@ async def setup_hook():
 
     bot.close = _close_with_mongo()
 
+
+
 #-----------------------------DEBUGGING----------------------------------#
 @bot.event
 async def on_ready():
@@ -138,7 +143,21 @@ threading.Thread(target=run_health_server, daemon=True).start()
 # Run the bot
 bot.run(token, log_handler=handler,log_level=logging.DEBUG)
 
+async def main():
+    async with bot:
+        await connect_mongo()  # if you move setup_hook logic here, or keep setup_hook as-is
+        await bot.start(token)
 
+if __name__ == "__main__":
+    try:
+        asyncio.run(main())
+    except discord.errors.HTTPException as e:
+        if e.status == 429:
+            logger.error("Hit Discord global rate limit on login. Sleeping 5 minutes before exiting to avoid restart-loop hammering.")
+            time.sleep(300)  # forces Render's restart cycle to space out instead of instant-looping
+            sys.exit(1)
+        else:
+            raise
 
 
 
